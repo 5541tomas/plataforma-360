@@ -8,7 +8,8 @@ import {
   setBudget, setInvestmentBalance, updateAccount, updateTransaction,
 } from "./actions";
 
-const TYPES: Record<string, string> = { checking: "À ordem", savings: "Poupança", investment: "Investimento", credit_card: "Cartão de crédito", loan: "Crédito / dívida", cash: "Numerário" };
+const TYPES: Record<string, string> = { checking: "À ordem", savings: "Poupança", investment: "Investimento", cash: "Numerário", credit_card: "Cartão de crédito", loan: "Crédito / dívida" };
+const NEW_TYPES = ["checking", "savings", "investment", "cash"]; // créditos e cartões registam-se em Dívidas
 type Scope = "personal" | "business" | "all";
 type Cat = { id: string; name: string; kind: string; scope: string };
 
@@ -63,7 +64,10 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
   const catName = new Map(cats.map((c) => [c.id, c.name]));
   const liquid = (accounts ?? []).filter((a) => ["checking", "savings", "cash"].includes(a.type)).reduce((s, a) => s + Number(a.balance), 0);
   const invest = (accounts ?? []).filter((a) => a.type === "investment").reduce((s, a) => s + Number(a.balance), 0);
-  const debt = (accounts ?? []).filter((a) => ["loan", "credit_card"].includes(a.type)).reduce((s, a) => s + Number(a.balance), 0);
+  const { data: debtsRaw } = await supabase.from("v_debts").select("monthly_payment, remaining, paid_this_month, scope").eq("org_id", ctx.org.id).eq("archived", false).in("scope", scopes);
+  const activeDebts = (debtsRaw ?? []).filter((d) => Number(d.remaining) > 0);
+  const installments = activeDebts.reduce((s, d) => s + Number(d.monthly_payment ?? 0), 0);
+  const installmentsPaid = activeDebts.filter((d) => d.paid_this_month).reduce((s, d) => s + Number(d.monthly_payment ?? 0), 0);
   const real = (monthAll ?? []).filter((t) => !t.is_transfer);
   const mIn = real.filter((t) => t.amount > 0).reduce((s, t) => s + Number(t.amount), 0);
   const mOut = real.filter((t) => t.amount < 0).reduce((s, t) => s + Number(t.amount), 0);
@@ -97,8 +101,6 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
           <Link href={qs({ s: "business" })} aria-current={scope === "business" ? "true" : undefined}>Empresa</Link>
           <Link href={qs({ s: "all" })} aria-current={scope === "all" ? "true" : undefined}>Consolidado</Link>
         </nav>
-        <Link href="/financas/importar" className="btn-ghost">Importar extrato</Link>
-        {bizWrite && <Link href="/financas/impostos" className="btn-ghost">Impostos e salário</Link>}
         <Disclosure label="Nova conta">
           <form action={createAccount} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1.5"><span className="label">Nome</span><input name="name" className="input" required placeholder="Ex.: Santander ordenado" /></label>
@@ -106,14 +108,14 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
               <label className="flex flex-col gap-1.5"><span className="label">Banco</span>
                 <input name="bank" list="banks" className="input" /><datalist id="banks"><option value="Santander" /><option value="ActivoBank" /><option value="ABANCA" /></datalist></label>
               <label className="flex flex-col gap-1.5"><span className="label">Tipo</span>
-                <select name="type" className="input">{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                <select name="type" className="input">{NEW_TYPES.map((k) => <option key={k} value={k}>{TYPES[k]}</option>)}</select></label>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1.5"><span className="label">Contexto</span>
                 <select name="scope" defaultValue={defaultScope} className="input"><option value="personal">Pessoal</option>{bizWrite && <option value="business">Empresa</option>}</select></label>
               <label className="flex flex-col gap-1.5"><span className="label">Saldo inicial (€)</span><input name="opening_balance" type="number" step="0.01" className="input" defaultValue={0} /></label>
             </div>
-            <p className="text-xs text-muted">Dica: se vais importar extratos, põe o saldo que a conta tinha <em>antes</em> do primeiro movimento importado. Para créditos, usa um valor negativo.</p>
+            <p className="text-xs text-muted">Dica: se vais importar extratos, põe o saldo que a conta tinha <em>antes</em> do primeiro movimento importado. Créditos e cartões registam-se no separador <Link href="/financas/dividas" className="text-accent-ink">Dívidas</Link>.</p>
             <button className="btn">Criar conta</button>
           </form>
         </Disclosure>
@@ -149,8 +151,8 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
       </nav>
 
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(210px,1fr))]">
-        <Kpi label="Património líquido (hoje)" value={eur(liquid + invest + debt)} hint={`Liquidez ${eur(liquid)} · Investido ${eur(invest)}`} />
-        <Kpi label="Dívidas" value={eur(debt)} tone={debt < 0 ? "warn" : undefined} hint={debt < 0 ? "Créditos e cartões" : "Sem dívidas registadas"} />
+        <Kpi label="Liquidez (hoje)" value={eur(liquid)} hint={invest ? `Mais ${eur(invest)} investidos` : "Contas à ordem, poupança e numerário"} />
+        <Kpi label="Prestações do mês" value={eur(installments)} hint={installments ? <Link href="/financas/dividas" className="text-accent-ink">{eur(installmentsPaid)} já pagas · ver dívidas</Link> : "Sem prestações"} />
         <Kpi label="Resultado do mês" value={eur(mIn + mOut)} hint={`Entradas ${eur(mIn)} · Saídas ${eur(-mOut)}`} tone={mIn + mOut >= 0 ? "good" : "warn"} />
         <Kpi label={scope === "business" ? "Margem do mês" : "Taxa de poupança"} value={savingsRate === null ? "—" : `${savingsRate}%`}
           hint={uncategorized > 0 ? <Link href={qs({ f: "sem" })} className="text-warn font-medium">{uncategorized} por categorizar</Link> : "Tudo categorizado"} />

@@ -44,7 +44,9 @@ export async function buildSnapshot(supabase: SupabaseClient, ctx: AppContext) {
       const c = t.category_id ? catName.get(t.category_id) ?? "Outra" : "Sem categoria";
       b.porCategoria[c] = r2((b.porCategoria[c] ?? 0) + Number(t.amount));
     });
+    const { data: debts } = await supabase.from("v_debts").select("name, lender, kind, remaining, monthly_payment, end_date, projected_end, paid_this_month").eq("org_id", ctx.org.id).eq("archived", false);
     out.financas = {
+      dividas: (debts ?? []).map((d) => ({ divida: d.name, credor: d.lender, em_falta: Number(d.remaining), prestacao_mensal: d.monthly_payment ? Number(d.monthly_payment) : null, liquidada_em: d.end_date ?? d.projected_end, paga_este_mes: d.paid_this_month })),
       contas: (accounts ?? []).map((a) => ({ nome: a.name, banco: a.bank, ambito: a.scope === "business" ? "empresa" : "pessoal", tipo: a.type, saldo: r2(Number(a.balance)) })),
       recorrentes_mensais: (rec ?? []).map((r) => ({ descricao: r.description, valor: Number(r.amount), ambito: r.scope === "business" ? "empresa" : "pessoal", dia: r.day_of_month })),
       orcamentos_mes_atual: (budgets ?? []).map((b) => ({ categoria: catName.get(b.category_id), limite: Number(b.amount), ambito: b.scope === "business" ? "empresa" : "pessoal" })),
