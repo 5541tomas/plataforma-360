@@ -4,7 +4,7 @@ import { eur2 } from "@/lib/format";
 import { Disclosure, Empty, PageHeader } from "@/components/ui";
 import { saveProduct } from "../actions";
 
-function Fields({ p }: { p?: { name: string; description: string | null; kind: string; price: number; duration_months: number; active: boolean; hours_per_unit?: number } }) {
+function Fields({ p }: { p?: { name: string; description: string | null; kind: string; price: number; duration_months: number; active: boolean; hours_per_unit?: number; delivery_weeks?: number } }) {
   return (
     <>
       <label className="flex flex-col gap-1.5 col-span-2"><span className="label">Nome</span><input name="name" defaultValue={p?.name} className="input" required /></label>
@@ -13,6 +13,7 @@ function Fields({ p }: { p?: { name: string; description: string | null; kind: s
       <label className="flex flex-col gap-1.5"><span className="label">Preço sem IVA (€)</span><input name="price" type="number" step="0.01" min="0" defaultValue={p?.price} className="input" required /></label>
       <label className="flex flex-col gap-1.5"><span className="label">Duração (meses, avenças)</span><input name="duration_months" type="number" min="1" defaultValue={p?.duration_months ?? 1} className="input" /></label>
       <label className="flex flex-col gap-1.5"><span className="label">Horas de entrega (por unidade/mês)</span><input name="hours_per_unit" type="number" step="0.5" min="0" defaultValue={p?.hours_per_unit ?? 0} className="input" /></label>
+      <label className="flex flex-col gap-1.5"><span className="label">Duração da entrega (semanas)</span><input name="delivery_weeks" type="number" min="0" defaultValue={p?.delivery_weeks ?? 0} className="input" /></label>
       <label className="flex flex-col gap-1.5"><span className="label">Estado</span><select name="active" defaultValue={p?.active === false ? "off" : "on"} className="input"><option value="on">Ativo</option><option value="off">Arquivado</option></select></label>
     </>
   );

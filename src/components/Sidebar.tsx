@@ -19,7 +19,7 @@ const items: { href: string; label: string; icon: keyof typeof icons; module?: M
   { href: "/objetivos", label: "Objetivos", icon: "goals", module: "goals" },
   { href: "/financas", label: "Finanças", icon: "finance", module: "finance" },
   { href: "/crm", label: "CRM", icon: "crm", module: "crm" },
-  { href: "/revisao", label: "Revisão semanal", icon: "review" },
+  { href: "/revisao", label: "Revisões", icon: "review" },
   { href: "/assistente", label: "Assistente IA", icon: "ai" },
 ];
 

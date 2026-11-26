@@ -117,3 +117,17 @@ export async function revokeApiToken(formData: FormData) {
   revalidatePath("/definicoes");
   back("Ligação revogada.");
 }
+
+export async function saveLeadForm(formData: FormData) {
+  const ctx = await getContext();
+  const supabase = await createClient();
+  const slug = String(formData.get("slug") ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  if (slug.length < 3) back("O endereço precisa de pelo menos 3 letras.", false);
+  const { error } = await supabase.from("organizations").update({
+    public_slug: slug,
+    lead_form: { enabled: formData.get("enabled") === "on", title: String(formData.get("title") ?? "") || null, intro: String(formData.get("intro") ?? "") || null, products: formData.get("products") === "on" },
+  }).eq("id", ctx.org.id);
+  if (error) back(error.message.includes("duplicate") ? "Esse endereço já está a ser usado. Escolhe outro." : error.message, false);
+  revalidatePath("/definicoes");
+  back("Formulário de contacto atualizado.");
+}

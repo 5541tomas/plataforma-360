@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
-import { revokeApiToken } from "./actions";
+import { revokeApiToken, saveLeadForm } from "./actions";
 import { addMember, changePassword, disconnectGoogle, removeMember, renameOrg, syncGoogleNow, updateMember, updateProfile } from "./actions";
 import { googleConfigured } from "@/lib/google";
 import { ClaudeConnect } from "@/components/ClaudeConnect";
@@ -32,7 +32,7 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
   const { data: profile } = await supabase.from("profiles").select("phone").eq("id", ctx.userId).maybeSingle();
   const { data: tokens } = await supabase.from("api_tokens").select("id, name, created_at, last_used_at").eq("user_id", ctx.userId).order("created_at", { ascending: false });
   const { data: google } = await supabase.from("integrations").select("account_email, last_sync_at").eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google").maybeSingle();
-  const { data: org } = await supabase.from("organizations").select("name, legal_name, nif, address, email, phone, website, iban, about, testimonials, signature_name, signature_role").eq("id", ctx.org.id).single();
+  const { data: org } = await supabase.from("organizations").select("name, legal_name, nif, address, email, phone, website, iban, about, testimonials, signature_name, signature_role, public_slug, lead_form").eq("id", ctx.org.id).single();
 
   return (
     <>
@@ -76,6 +76,24 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
           </form>
         )}
       </section>
+
+      {admin && (
+        <form action={saveLeadForm} className="card flex flex-col gap-3">
+          <h2 className="h2">Formulário de contacto público</h2>
+          <p className="text-sm text-muted">Um link para pores no Instagram, LinkedIn ou site. Quem preenche entra no CRM como lead, com tarefa de resposta para hoje. Acrescenta <code>?origem=instagram</code> ao link para saberes de onde veio.</p>
+          {org?.public_slug && (org.lead_form as { enabled?: boolean })?.enabled && (
+            <a href={`/f/${org.public_slug}`} target="_blank" rel="noopener noreferrer" className="break-all rounded-xl bg-accent-soft px-4 py-3 text-sm font-medium text-accent-ink">plataforma-360-0sri.netlify.app/f/{org.public_slug}</a>
+          )}
+          <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+            <label className="flex flex-col gap-1.5"><span className="label">Endereço (/f/…)</span><input name="slug" required defaultValue={org?.public_slug ?? ctx.org.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")} className="input" /></label>
+            <label className="flex flex-col gap-1.5"><span className="label">Título</span><input name="title" defaultValue={(org?.lead_form as { title?: string })?.title ?? ""} placeholder="Vamos conversar?" className="input" /></label>
+          </div>
+          <label className="flex flex-col gap-1.5"><span className="label">Texto de introdução</span><textarea name="intro" rows={2} defaultValue={(org?.lead_form as { intro?: string })?.intro ?? ""} className="input py-2.5" /></label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="products" defaultChecked={(org?.lead_form as { products?: boolean })?.products !== false} className="h-4 w-4" /> Mostrar a lista de produtos (“Tenho interesse em…”)</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={!!(org?.lead_form as { enabled?: boolean })?.enabled} className="h-4 w-4" /> Formulário ativo</label>
+          <button className="btn self-start">Guardar</button>
+        </form>
+      )}
 
       <section className="card flex flex-col gap-3">
         <h2 className="h2">Falar com a plataforma a partir do Claude</h2>

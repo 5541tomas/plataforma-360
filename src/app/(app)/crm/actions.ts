@@ -159,6 +159,7 @@ export async function saveProduct(formData: FormData) {
     kind: String(formData.get("kind") || "one_off"), price: Number(formData.get("price") || 0),
     duration_months: Number(formData.get("duration_months") || 1), active: formData.get("active") !== "off",
     hours_per_unit: Number(formData.get("hours_per_unit") || 0),
+    delivery_weeks: Number(formData.get("delivery_weeks") || 0),
   };
   const { error } = id ? await supabase.from("products").update(row).eq("id", id) : await supabase.from("products").insert({ ...row, position: 99 });
   if (error) throw new Error(error.message);

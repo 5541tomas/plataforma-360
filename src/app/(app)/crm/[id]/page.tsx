@@ -48,6 +48,10 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
         <div className="card !p-5 flex flex-col gap-1"><span className="text-[13px] text-muted">Valor</span><span className="text-2xl font-bold tracking-[-0.5px]">{deal.kind === "retainer" ? `${eur(deal.value)}/mês` : eur(deal.value)}</span>{deal.kind === "retainer" && <span className="text-xs text-muted">{deal.duration_months} meses · {eur(deal.total_value)} total</span>}</div>
         <div className="card !p-5 flex flex-col gap-1"><span className="text-[13px] text-muted">Etapa · probabilidade</span><span className="text-2xl font-bold tracking-[-0.5px]">{deal.stage_name} · {deal.eff_probability}%</span><span className="text-xs text-muted">Ponderado {eur(deal.weighted_value)}</span></div>
+        {deal.status === "won" && deal.delivery_end ? (
+          <div className="card !p-5 flex flex-col gap-1"><span className="text-[13px] text-muted">Fim da entrega</span><span className="text-2xl font-bold tracking-[-0.5px]">{dateShort(deal.delivery_end)}</span>
+            <span className="text-xs text-good">Continuidade proposta 2 semanas antes · testemunho no fim</span></div>
+        ) : null}
         <div className="card !p-5 flex flex-col gap-1"><span className="text-[13px] text-muted">Fecho previsto</span><span className="text-2xl font-bold tracking-[-0.5px]">{deal.expected_close ? dateShort(deal.expected_close) : "—"}</span>
           <span className={`text-xs ${deal.is_cooling ? "text-warn font-medium" : "text-muted"}`}>Último contacto {dateShort(deal.last_activity_at)}{deal.is_cooling ? " · a arrefecer" : ""}</span></div>
       </section>

@@ -23,3 +23,17 @@ export function TaskItem({ t, meta, tag }: { t: { id: string; title: string; don
     </li>
   );
 }
+
+/** Só o botão de concluir (para listas onde o título já aparece) */
+export function TaskCheck({ t }: { t: { id: string; title: string; done: boolean } }) {
+  return (
+    <form action={toggleTask}>
+      <input type="hidden" name="id" value={t.id} />
+      <input type="hidden" name="done" value={String(t.done)} />
+      <button aria-label={t.done ? `Desmarcar: ${t.title}` : `Concluir: ${t.title}`}
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm text-white ${t.done ? "bg-accent" : "border-[1.5px] border-[#C7C7CC] bg-white hover:border-accent"}`}>
+        {t.done ? "✓" : ""}
+      </button>
+    </form>
+  );
+}

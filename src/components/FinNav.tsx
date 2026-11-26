@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/financas", label: "Movimentos" },
+  { href: "/financas/analise", label: "Análise do mês" },
+  { href: "/financas/cobrancas", label: "Cobranças" },
   { href: "/financas/dividas", label: "Dívidas" },
   { href: "/financas/impostos", label: "Impostos e salário" },
   { href: "/financas/importar", label: "Importar extrato" },

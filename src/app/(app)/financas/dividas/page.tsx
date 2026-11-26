@@ -3,6 +3,7 @@ import { requireModule, canWrite } from "@/lib/context";
 import { eur, eur2 } from "@/lib/format";
 import { Disclosure, Empty, PageHeader, Progress } from "@/components/ui";
 import { archiveDebt, payInstallment, saveDebt } from "./actions";
+import { DebtPlanner } from "@/components/DebtPlanner";
 
 type Debt = {
   id: string; name: string; lender: string | null; kind: string; scope: string; balance_start: number; start_date: string;
@@ -75,6 +76,13 @@ export default async function DividasPage() {
 
         {incomplete.length > 0 && (
           <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent-ink">Completa a prestação mensal e a data de fim de: <strong className="font-semibold">{incomplete.map((d) => d.name).join(", ")}</strong> (botão “Editar” no cartão).</p>
+        )}
+
+        {debts.filter((d) => Number(d.remaining) > 0).length > 0 && (
+          <section className="card flex flex-col gap-3">
+            <h2 className="h2">Estratégia: livra-te das dívidas mais cedo</h2>
+            <DebtPlanner debts={debts.map((d) => ({ id: d.id, name: d.name, remaining: Number(d.remaining), payment: Number(d.monthly_payment ?? 0) }))} />
+          </section>
         )}
 
         <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">

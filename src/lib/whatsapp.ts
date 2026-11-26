@@ -30,6 +30,8 @@ export function dealTemplates(o: { contact?: string | null; title: string; me: s
     t.unshift({ label: "Proposta enviada", text: `${hi}, acabei de lhe enviar por email a proposta para ${o.title}. Se fizer sentido, podemos falar 15 minutos para rever em conjunto. ${sign}` });
     t.push({ label: "Lembrete de proposta", text: `${hi}, só para relembrar a proposta de ${o.title}. Alguma questão que eu possa ajudar a esclarecer? ${sign}` });
   }
+  t.push({ label: "Fim de programa · continuidade", text: `${hi}! Estamos a chegar ao fim de ${o.title} e gostava de marcar 20 minutos para fazermos o balanço e vermos como dar continuidade aos resultados. Que dia lhe dá jeito? ${sign}` });
+  t.push({ label: "Pedir testemunho e recomendação", text: `${hi}, foi um gosto trabalhar consigo em ${o.title}! Se ficou satisfeito, deixava-me 2 ou 3 frases sobre a experiência? E se conhecer alguém a quem isto possa ajudar, ficava muito grato pela recomendação. ${sign}` });
   t.push({ label: "Lembrete de sessão", text: `${hi}! Só para confirmar a nossa sessão de amanhã. Até lá! ${sign}` });
   t.push({ label: "Obrigado", text: `${hi}, muito obrigado pela confiança! Vou enviar-lhe os próximos passos em breve. ${sign}` });
   return t;
