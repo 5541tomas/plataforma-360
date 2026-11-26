@@ -79,7 +79,7 @@ export default async function AutomacoesPage({ searchParams }: { searchParams: P
   const seqName = new Map(((seqs ?? []) as Seq[]).map((s) => [s.id, s.name]));
   const items: QItem[] = (queue ?? []).map((q) => {
     const st = q.step_id ? stepById.get(q.step_id) : undefined;
-    return { id: q.id, channel: q.channel as "email" | "whatsapp", to_address: q.to_address, subject: q.subject, body: q.body, contact: cName.get(q.contact_id!) ?? "—", deal: q.deal_id ? dName.get(q.deal_id) ?? null : null, step: st ? `${seqName.get(st.sequence_id)} · passo ${st.position}` : "manual", due_on: q.due_on };
+    return { id: q.id, channel: q.channel as "email" | "whatsapp", to_address: q.to_address, subject: q.subject, body: q.body, contact: cName.get(q.contact_id!) ?? "—", deal: q.deal_id ? dName.get(q.deal_id) ?? null : null, step: st ? `${seqName.get(st.sequence_id)} · passo ${st.position}` : "Lead magnet · resultado", due_on: q.due_on };
   });
   const emailsPending = items.filter((i) => i.channel === "email").length;
   const sender = (org?.settings as { email?: { from_name?: string; from_email?: string; reply_to?: string } })?.email ?? {};
