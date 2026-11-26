@@ -3,7 +3,7 @@ import { requireModule } from "@/lib/context";
 import { eur } from "@/lib/format";
 import { Empty, Kpi, PageHeader, Progress } from "@/components/ui";
 
-type D = { id: string; status: string; stage_id: string; pipeline_id: string; source: string | null; product_id: string | null; product_name: string | null; quantity: number; total_value: number; weighted_value: number; created_at: string; won_at: string | null; expected_close: string | null; kind: string; value: number };
+type D = { referred_by_name: string | null; id: string; status: string; stage_id: string; pipeline_id: string; source: string | null; product_id: string | null; product_name: string | null; quantity: number; total_value: number; weighted_value: number; created_at: string; won_at: string | null; expected_close: string | null; kind: string; value: number };
 
 export default async function RelatoriosPage({ searchParams }: { searchParams: Promise<{ y?: string }> }) {
   const ctx = await requireModule("crm");
@@ -11,7 +11,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
   const year = Number(sp.y) || new Date().getFullYear();
   const supabase = await createClient();
   const [{ data: dealsRaw }, { data: stages }, { data: acts }, { data: krs }] = await Promise.all([
-    supabase.from("v_deals").select("id, status, stage_id, pipeline_id, source, product_id, product_name, quantity, total_value, weighted_value, created_at, won_at, expected_close, kind, value").eq("org_id", ctx.org.id),
+    supabase.from("v_deals").select("referred_by_name, id, status, stage_id, pipeline_id, source, product_id, product_name, quantity, total_value, weighted_value, created_at, won_at, expected_close, kind, value").eq("org_id", ctx.org.id),
     supabase.from("stages").select("id, name, position, is_won, is_lost, pipeline_id").eq("org_id", ctx.org.id).order("position"),
     supabase.from("activities").select("deal_id, summary").eq("org_id", ctx.org.id).like("summary", "Proposta enviada%"),
     supabase.from("key_results").select("label, target_value, goals!inner(horizon, period_start)").eq("org_id", ctx.org.id),
@@ -44,6 +44,14 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
     const s = bySource.get(k) ?? { n: 0, won: 0, value: 0 };
     s.n++; if (d.status === "won") { s.won++; s.value += Number(d.total_value); }
     bySource.set(k, s);
+  });
+
+  // Quem recomenda
+  const byRef = new Map<string, { n: number; won: number; value: number }>();
+  deals.filter((d) => d.referred_by_name).forEach((d) => {
+    const s = byRef.get(d.referred_by_name!) ?? { n: 0, won: 0, value: 0 };
+    s.n++; if (d.status === "won") { s.won++; s.value += Number(d.total_value); }
+    byRef.set(d.referred_by_name!, s);
   });
 
   // Produtos vendidos vs objetivos anuais (KR com o mesmo nome base)
@@ -109,6 +117,18 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
               <thead className="text-left text-xs text-muted"><tr><th className="py-1.5 font-medium">Origem</th><th className="py-1.5 text-right font-medium">Negócios</th><th className="py-1.5 text-right font-medium">Ganhos</th><th className="py-1.5 text-right font-medium">Valor ganho</th></tr></thead>
               <tbody>{[...bySource.entries()].sort((a, b) => b[1].value - a[1].value).map(([k, s]) => (
                 <tr key={k} className="border-t border-line"><td className="py-2">{k}</td><td className="py-2 text-right">{s.n}</td><td className="py-2 text-right">{s.won} <span className="text-xs text-muted">({Math.round((s.won / s.n) * 100)}%)</span></td><td className="py-2 text-right">{eur(s.value)}</td></tr>
+              ))}</tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="card flex flex-col gap-3">
+          <h2 className="h2">Quem te traz clientes</h2>
+          {byRef.size === 0 ? <Empty>Regista “Recomendado por” nos negócios para veres quem te recomenda mais. Depois de cada negócio ganho, a plataforma lembra-te de pedir testemunho e recomendação.</Empty> : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted"><tr><th className="py-1.5 font-medium">Pessoa</th><th className="py-1.5 text-right font-medium">Recomendações</th><th className="py-1.5 text-right font-medium">Ganhos</th><th className="py-1.5 text-right font-medium">Valor</th></tr></thead>
+              <tbody>{[...byRef.entries()].sort((a, b) => b[1].value - a[1].value).map(([k, s]) => (
+                <tr key={k} className="border-t border-line"><td className="py-2">{k}</td><td className="py-2 text-right">{s.n}</td><td className="py-2 text-right">{s.won}</td><td className="py-2 text-right">{eur(s.value)}</td></tr>
               ))}</tbody>
             </table>
           )}

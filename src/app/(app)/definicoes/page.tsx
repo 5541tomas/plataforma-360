@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
+import { revokeApiToken } from "./actions";
 import { addMember, changePassword, disconnectGoogle, removeMember, renameOrg, syncGoogleNow, updateMember, updateProfile } from "./actions";
 import { googleConfigured } from "@/lib/google";
+import { ClaudeConnect } from "@/components/ClaudeConnect";
 
 const LEVELS = [["none", "Sem acesso"], ["read", "Ler"], ["write", "Editar"]] as const;
 const MODULES = [["perm_goals", "Objetivos"], ["perm_finance", "Finanças (empresa)"], ["perm_crm", "CRM"]] as const;
@@ -28,6 +30,7 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
   const supabase = await createClient();
   const { data: members } = await supabase.rpc("list_members", { p_org: ctx.org.id });
   const { data: profile } = await supabase.from("profiles").select("phone").eq("id", ctx.userId).maybeSingle();
+  const { data: tokens } = await supabase.from("api_tokens").select("id, name, created_at, last_used_at").eq("user_id", ctx.userId).order("created_at", { ascending: false });
   const { data: google } = await supabase.from("integrations").select("account_email, last_sync_at").eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google").maybeSingle();
   const { data: org } = await supabase.from("organizations").select("name, legal_name, nif, address, email, phone, website, iban, about, testimonials, signature_name, signature_role").eq("id", ctx.org.id).single();
 
@@ -72,6 +75,22 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
             <button className="btn self-start">Guardar</button>
           </form>
         )}
+      </section>
+
+      <section className="card flex flex-col gap-3">
+        <h2 className="h2">Falar com a plataforma a partir do Claude</h2>
+        <p className="text-sm text-muted">Liga a Plataforma 360 ao Claude (claude.ai ou app do telemóvel) e escreve coisas como “fechei o programa com a Marta” ou “regista 45 € de almoço com cliente”. O Claude atualiza o CRM, as finanças e os objetivos.</p>
+        {(tokens?.length ?? 0) > 0 && (
+          <div className="flex flex-col gap-1.5">
+            {tokens!.map((t) => (
+              <div key={t.id} className="flex flex-wrap items-center gap-3 text-sm">
+                <span>Ligação criada a {new Date(t.created_at).toLocaleDateString("pt-PT")}{t.last_used_at ? ` · última utilização ${new Date(t.last_used_at).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : " · ainda não usada"}</span>
+                <form action={revokeApiToken}><input type="hidden" name="id" value={t.id} /><button className="min-h-9 px-2 text-sm font-medium text-warn">Revogar</button></form>
+              </div>
+            ))}
+          </div>
+        )}
+        <ClaudeConnect />
       </section>
 
       <section className="card flex flex-col gap-3">

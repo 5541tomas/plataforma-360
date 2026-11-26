@@ -6,6 +6,7 @@ import { Empty, Kpi, PageHeader, Progress } from "@/components/ui";
 import { TaskItem } from "@/components/TaskItem";
 import { createTask } from "./objetivos/actions";
 import { waLink } from "@/lib/whatsapp";
+import { goalEngine } from "@/lib/goal-engine";
 import { WaIcon } from "@/components/WhatsAppMenu";
 
 export default async function HojePage() {
@@ -61,6 +62,7 @@ export default async function HojePage() {
     crm: { label: "CRM", cls: "bg-accent-soft text-accent-ink" }, goals: { label: "Objetivos", cls: "bg-good-soft text-[#1E6B30]" }, finance: { label: "Finanças", cls: "bg-warn-soft text-[#8F4300]" },
   };
 
+  const engine = goals ? await goalEngine(supabase, ctx.org.id) : null;
   const { data: me } = await supabase.from("profiles").select("phone").eq("id", ctx.userId).maybeSingle();
   const pending = taskList.filter((x) => !x.done);
   const resumo = [
@@ -91,6 +93,15 @@ export default async function HojePage() {
         {fin && <Kpi label="Avenças ativas" value={`${eur(mrr)}/mês`} />}
         {goals && <Kpi label="Progresso dos objetivos" value={goalPct === null ? "—" : `${Math.round(goalPct)}%`} hint={goalPct === null ? "Define o teu primeiro objetivo" : <Progress value={goalPct} />} />}
       </section>
+
+      {engine && engine.target > 0 && (
+        <Link href="/meta" className="card !py-4 flex flex-wrap items-center gap-x-8 gap-y-2 hover:ring-2 hover:ring-accent/20">
+          <span className="text-sm font-semibold">Meta {engine.year}: {eur(engine.sold)} / {eur(engine.target)}</span>
+          <span className="text-sm text-ink-2">Por semana: <strong className="font-semibold">{String(engine.perWeek.conversations).replace(".", ",")}</strong> conversas · <strong className="font-semibold">{String(engine.perWeek.proposals).replace(".", ",")}</strong> propostas · <strong className="font-semibold">{String(engine.perWeek.wins).replace(".", ",")}</strong> vendas</span>
+          {engine.started && <span className={`text-sm font-medium ${engine.pace >= 0 ? "text-good" : "text-warn"}`}>{engine.pace >= 0 ? "No ritmo" : `${eur(-engine.pace)} abaixo do ritmo`}</span>}
+          <span className="ml-auto text-sm font-medium text-accent-ink">Abrir motor da meta ›</span>
+        </Link>
+      )}
 
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">
         <div className="card flex flex-col gap-3">

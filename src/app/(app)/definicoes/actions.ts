@@ -98,3 +98,22 @@ export async function disconnectGoogle() {
   await supabase.from("integrations").delete().eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google");
   back("Conta Google desligada.");
 }
+
+export async function createApiToken(): Promise<{ token: string } | { error: string }> {
+  const ctx = await getContext();
+  const supabase = await createClient();
+  const { randomBytes, createHash } = await import("crypto");
+  const token = randomBytes(32).toString("hex");
+  const { error } = await supabase.from("api_tokens").insert({ org_id: ctx.org.id, user_id: ctx.userId, name: "Claude", token_hash: createHash("sha256").update(token).digest("hex") });
+  if (error) return { error: error.message };
+  revalidatePath("/definicoes");
+  return { token };
+}
+
+export async function revokeApiToken(formData: FormData) {
+  const ctx = await getContext();
+  const supabase = await createClient();
+  await supabase.from("api_tokens").delete().eq("id", String(formData.get("id"))).eq("user_id", ctx.userId);
+  revalidatePath("/definicoes");
+  back("Ligação revogada.");
+}

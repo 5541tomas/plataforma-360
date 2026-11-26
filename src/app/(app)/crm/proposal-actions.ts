@@ -9,7 +9,7 @@ export async function createProposal(formData: FormData) {
   const ctx = await requireModule("crm", "write");
   const supabase = await createClient();
   const dealId = String(formData.get("deal_id"));
-  const { data: deal } = await supabase.from("v_deals").select("title, kind, value, quantity, duration_months, product_name, company_name").eq("id", dealId).single();
+  const { data: deal } = await supabase.from("v_deals").select("title, kind, value, quantity, duration_months, product_name, company_name, ai_brief").eq("id", dealId).single();
   if (!deal) throw new Error("Negócio não encontrado");
   const year = new Date().getFullYear();
   const { count } = await supabase.from("proposals").select("id", { count: "exact", head: true }).eq("org_id", ctx.org.id).like("number", `${year}-%`);
@@ -27,7 +27,8 @@ export async function createProposal(formData: FormData) {
     org_id: ctx.org.id, deal_id: dealId, number, items, total, valid_until: valid, recurring,
     title: deal.product_name ? `${deal.product_name}${deal.company_name ? ` para ${deal.company_name}` : ""}` : deal.title,
     intro: `Obrigado pela confiança e pela conversa. Este documento resume o que entendemos sobre o vosso momento, o que propomos fazer em conjunto e o investimento necessário.`,
-    context: "", objectives: t.objectives.join("\n"), phases: t.phases,
+    context: (deal.ai_brief as { contexto?: string } | null)?.contexto ?? "",
+    objectives: ((deal.ai_brief as { objetivos?: string[] } | null)?.objetivos ?? t.objectives).join("\n"), phases: t.phases,
     next_steps: ["Revisão desta proposta e esclarecimento de dúvidas", "Aceitação da proposta e agendamento da primeira sessão", "Arranque do trabalho"].join("\n"),
     terms: recurring
       ? `Duração mínima de ${deal.duration_months} meses. Faturação mensal, a pagar até 15 dias após a emissão da fatura. Valores acrescidos de IVA à taxa legal em vigor.`

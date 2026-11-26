@@ -31,11 +31,26 @@ export async function createGoal(formData: FormData) {
 export async function createKeyResult(formData: FormData) {
   const ctx = await requireModule("goals", "write");
   const supabase = await createClient();
+  const source = String(formData.get("source") || "manual");
+  let source_config: Record<string, string> = {};
+  if (source === "crm_product_units" || source === "finance_income" || source === "crm_won_value" || source === "crm_won_count") {
+    // Período do KR = período do objetivo
+    const { data: g } = await supabase.from("goals").select("horizon, period_start").eq("id", String(formData.get("goal_id"))).single();
+    if (g && g.horizon !== "vision") {
+      const end = new Date(g.period_start); end.setMonth(end.getMonth() + (g.horizon === "year" ? 12 : g.horizon === "quarter" ? 3 : 1));
+      source_config = { from: g.period_start, to: end.toISOString().slice(0, 10) };
+    }
+    if (source === "crm_product_units") {
+      const pid = String(formData.get("product_id") || "");
+      if (!pid) throw new Error("Escolhe o produto para este Key Result.");
+      source_config.product_id = pid;
+    }
+  }
   const { error } = await supabase.from("key_results").insert({
-    org_id: ctx.org.id,
+    org_id: ctx.org.id, source_config,
     goal_id: String(formData.get("goal_id")),
     label: String(formData.get("label")),
-    source: String(formData.get("source") || "manual"),
+    source,
     start_value: Number(formData.get("start_value") || 0),
     target_value: Number(formData.get("target_value")),
     unit: String(formData.get("unit") || ""),

@@ -9,7 +9,7 @@ const AREAS = ["Negócio", "Finanças", "Saúde", "Relações", "Aprendizagem", 
 const HORIZON: Record<string, string> = { vision: "Visão", year: "Anual", quarter: "Trimestral", month: "Mensal" };
 const SOURCES: Record<string, string> = {
   manual: "Manual", finance_income: "Auto · Receita da empresa (ano)", finance_savings: "Auto · Poupança + investimentos pessoais",
-  crm_mrr: "Auto · Receita recorrente (avenças)", crm_won_value: "Auto · Valor ganho no CRM (ano)", crm_won_count: "Auto · Nº de negócios ganhos (ano)", habit: "Auto · Registos de hábito",
+  crm_mrr: "Auto · Receita recorrente (avenças)", crm_product_units: "Auto · Unidades vendidas de um produto (CRM)", crm_won_value: "Auto · Valor ganho no CRM (ano)", crm_won_count: "Auto · Nº de negócios ganhos (ano)", habit: "Auto · Registos de hábito",
 };
 
 type KR = { id: string; goal_id: string; label: string; unit: string; start_value: number; target_value: number; computed_value: number; source: string };
@@ -36,6 +36,7 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
 
   let gq = supabase.from("goals").select("id, title, area, horizon, status, is_private, parent_id").eq("org_id", ctx.org.id).neq("status", "dropped").order("created_at");
   if (h) gq = gq.eq("horizon", h);
+  const { data: products } = await supabase.from("products").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("position");
   const [{ data: goals }, { data: krs }, { data: habits }, { data: logs }, { data: tasks }] = await Promise.all([
     gq,
     supabase.from("v_key_results").select("*").eq("org_id", ctx.org.id).order("position"),
@@ -133,6 +134,8 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
                     <label className="flex flex-col gap-1.5 col-span-full"><span className="label">Key Result</span><input name="label" className="input" required placeholder="Ex.: Chegar a 6 avenças ativas" /></label>
                     <label className="flex flex-col gap-1.5 col-span-full"><span className="label">Fonte do progresso</span>
                       <select name="source" className="input">{Object.entries(SOURCES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                    {(products?.length ?? 0) > 0 && <label className="flex flex-col gap-1.5 col-span-full"><span className="label">Produto (só para “Unidades vendidas”)</span>
+                      <select name="product_id" className="input"><option value="">—</option>{products!.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
                     <label className="flex flex-col gap-1.5"><span className="label">Inicial</span><input name="start_value" type="number" step="any" defaultValue={0} className="input" /></label>
                     <label className="flex flex-col gap-1.5"><span className="label">Alvo</span><input name="target_value" type="number" step="any" required className="input" /></label>
                     <label className="flex flex-col gap-1.5"><span className="label">Unidade</span><input name="unit" className="input" placeholder="€, %, clientes…" /></label>

@@ -12,9 +12,10 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const ctx = await requireModule("crm");
   const write = canWrite(ctx, "crm");
   const supabase = await createClient();
-  const [{ data: pipelines }, { data: products }] = await Promise.all([
+  const [{ data: pipelines }, { data: products }, { data: contactNames }] = await Promise.all([
     supabase.from("pipelines").select("id, name").eq("org_id", ctx.org.id).order("position"),
     supabase.from("products").select("id, name, price, kind").eq("org_id", ctx.org.id).eq("active", true).order("position"),
+    supabase.from("contacts").select("name").eq("org_id", ctx.org.id).order("name").limit(1000),
   ]);
   const sp = await searchParams;
   const pipe = pipelines?.find((p) => p.id === sp.p) ?? pipelines?.[0];
@@ -85,6 +86,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                 <label className="flex flex-col gap-1.5"><span className="label">Origem</span>
                   <select name="source" className="input"><option value="">—</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select></label>
               </div>
+              <label className="flex flex-col gap-1.5"><span className="label">Recomendado por (contacto)</span><input name="referred_by" list="contact-names" className="input" placeholder="Nome de quem recomendou" /></label>
+              <datalist id="contact-names">{(contactNames ?? []).map((c) => <option key={c.name} value={c.name} />)}</datalist>
               <button className="btn">Criar e abrir</button>
             </form>
           </Disclosure>

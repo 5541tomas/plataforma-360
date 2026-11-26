@@ -6,7 +6,7 @@ import { eur, dateShort } from "@/lib/format";
 import { Empty, PageHeader } from "@/components/ui";
 import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 import { dealTemplates } from "@/lib/whatsapp";
-import { addContactNote, createDeal, saveContact } from "../../actions";
+import { addContactNote, addTestimonial, createDeal, saveContact } from "../../actions";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -91,6 +91,17 @@ export default async function ContactPage({ params }: { params: Promise<{ cid: s
             )}
           </div>
 
+          {write && (
+            <form action={addTestimonial} className="card flex flex-col gap-2">
+              <h2 className="h2">Testemunho</h2>
+              <p className="text-xs text-muted">O que {c.name.split(" ")[0]} disse do teu trabalho. Fica guardado e aparece automaticamente nas propostas.</p>
+              <input type="hidden" name="contact_id" value={c.id} />
+              <input type="hidden" name="author" value={[c.name, c.role, company?.name].filter(Boolean).join(", ")} />
+              <label className="sr-only" htmlFor="tst">Testemunho</label>
+              <textarea id="tst" name="text" rows={3} required className="input py-2.5" placeholder="Ex.: Em 8 sessões organizámos a equipa e duplicámos as vendas." />
+              <button className="btn-ghost self-start">Guardar testemunho</button>
+            </form>
+          )}
           <div className="card flex flex-col gap-3">
             <h2 className="h2">Dados</h2>
             <form action={saveContact} className="grid grid-cols-2 gap-2">

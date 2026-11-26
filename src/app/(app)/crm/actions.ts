@@ -11,6 +11,13 @@ async function findOrCreateCompany(supabase: Awaited<ReturnType<typeof createCli
   return data?.id ?? null;
 }
 
+async function contactIdByName(supabase: Awaited<ReturnType<typeof createClient>>, orgId: string, name: string) {
+  const n = name.trim();
+  if (!n) return null;
+  const { data } = await supabase.from("contacts").select("id").eq("org_id", orgId).ilike("name", n).limit(1).maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function createDeal(formData: FormData) {
   const ctx = await requireModule("crm", "write");
   const supabase = await createClient();
@@ -51,6 +58,7 @@ export async function createDeal(formData: FormData) {
     duration_months: duration || 12, quantity: qty, product_id: productId,
     expected_close: String(formData.get("expected_close") || "") || null,
     company_id: companyId, contact_id: contactId, source: String(formData.get("source") ?? "") || null,
+    referred_by: await contactIdByName(supabase, ctx.org.id, String(formData.get("referred_by") ?? "")),
   }).select("id").single();
   if (error) throw new Error(error.message);
   revalidatePath("/crm", "layout");
@@ -150,6 +158,7 @@ export async function saveProduct(formData: FormData) {
     org_id: ctx.org.id, name: String(formData.get("name")), description: String(formData.get("description") || "") || null,
     kind: String(formData.get("kind") || "one_off"), price: Number(formData.get("price") || 0),
     duration_months: Number(formData.get("duration_months") || 1), active: formData.get("active") !== "off",
+    hours_per_unit: Number(formData.get("hours_per_unit") || 0),
   };
   const { error } = id ? await supabase.from("products").update(row).eq("id", id) : await supabase.from("products").insert({ ...row, position: 99 });
   if (error) throw new Error(error.message);
@@ -211,6 +220,8 @@ export async function updateDeal(formData: FormData) {
     probability: prob === "" ? null : Math.max(0, Math.min(100, Number(prob))),
     company_id: companyId,
     lost_reason: String(formData.get("lost_reason") || "") || null,
+    source: String(formData.get("source") || "") || null,
+    referred_by: await contactIdByName(supabase, ctx.org.id, String(formData.get("referred_by") ?? "")),
   }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/crm/${id}`); revalidatePath("/crm"); revalidatePath("/");
@@ -273,4 +284,17 @@ export async function deleteDeal(formData: FormData) {
   revalidatePath("/crm"); revalidatePath("/");
   const { redirect } = await import("next/navigation");
   redirect("/crm");
+}
+
+export async function addTestimonial(formData: FormData) {
+  const ctx = await requireModule("crm", "write");
+  const supabase = await createClient();
+  const text = String(formData.get("text") ?? "").trim();
+  if (!text) return;
+  const author = String(formData.get("author") ?? "").trim();
+  const { data: org } = await supabase.from("organizations").select("testimonials").eq("id", ctx.org.id).single();
+  const entry = `${text.replace(/\s*\n\s*/g, " ")} — ${author}`;
+  await supabase.from("organizations").update({ testimonials: [org?.testimonials?.trim(), entry].filter(Boolean).join("\n\n") }).eq("id", ctx.org.id);
+  await supabase.from("activities").insert({ org_id: ctx.org.id, contact_id: String(formData.get("contact_id")), type: "note", summary: `Testemunho recebido: “${text}”` });
+  revalidatePath("/crm", "layout"); revalidatePath("/definicoes");
 }

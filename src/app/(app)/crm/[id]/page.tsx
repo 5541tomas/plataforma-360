@@ -7,6 +7,8 @@ import { Empty, PageHeader } from "@/components/ui";
 import { addActivity, addContactToDeal, deleteDeal, moveDeal, updateContact, updateDeal } from "../actions";
 import { createProposal } from "../proposal-actions";
 import { WhatsAppMenu } from "@/components/WhatsAppMenu";
+import { Copilot } from "@/components/Copilot";
+import { aiConfigured } from "@/lib/ai";
 import { dealTemplates } from "@/lib/whatsapp";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
@@ -84,6 +86,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="flex flex-col gap-4">
+          {write && <Copilot dealId={deal.id} currentStage={deal.stage_name} phone={deal.contact_phone} enabled={aiConfigured()} />}
           <div className="card flex flex-col gap-3">
             <h2 className="h2">Contacto</h2>
             {contact ? (
@@ -141,6 +144,8 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
                 <label className="flex flex-col gap-1.5"><span className="label">Fecho previsto</span><input name="expected_close" type="date" defaultValue={deal.expected_close ?? ""} className="input" /></label>
                 <label className="flex flex-col gap-1.5"><span className="label">Probabilidade (%) · vazio = da etapa</span><input name="probability" type="number" min="0" max="100" defaultValue={deal.probability ?? ""} className="input" /></label>
                 <label className="flex flex-col gap-1.5"><span className="label">Motivo de perda</span><input name="lost_reason" defaultValue={deal.lost_reason ?? ""} className="input" /></label>
+                <label className="flex flex-col gap-1.5"><span className="label">Origem</span><input name="source" defaultValue={deal.source ?? ""} className="input" /></label>
+                <label className="flex flex-col gap-1.5"><span className="label">Recomendado por</span><input name="referred_by" defaultValue={deal.referred_by_name ?? ""} className="input" /></label>
                 <button className="btn col-span-2">Guardar alterações</button>
               </form>
               <form action={deleteDeal} className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-sm">

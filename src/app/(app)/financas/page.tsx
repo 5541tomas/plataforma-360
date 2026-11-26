@@ -98,6 +98,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
           <Link href={qs({ s: "all" })} aria-current={scope === "all" ? "true" : undefined}>Consolidado</Link>
         </nav>
         <Link href="/financas/importar" className="btn-ghost">Importar extrato</Link>
+        {bizWrite && <Link href="/financas/impostos" className="btn-ghost">Impostos e salário</Link>}
         <Disclosure label="Nova conta">
           <form action={createAccount} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1.5"><span className="label">Nome</span><input name="name" className="input" required placeholder="Ex.: Santander ordenado" /></label>

@@ -5,6 +5,8 @@ import type { Access, Module } from "@/lib/context";
 
 const icons = {
   hoje: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
+  meta: <><path d="M4 20l5-6 4 3 7-9" /><path d="M15 8h5v5" /></>,
+  review: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12l3 3 5-6" /></>,
   goals: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></>,
   finance: <><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M7 15h4" /></>,
   ai: <><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></>,
@@ -13,9 +15,11 @@ const icons = {
 
 const items: { href: string; label: string; icon: keyof typeof icons; module?: Module }[] = [
   { href: "/", label: "Hoje", icon: "hoje" },
+  { href: "/meta", label: "Meta", icon: "meta", module: "goals" },
   { href: "/objetivos", label: "Objetivos", icon: "goals", module: "goals" },
   { href: "/financas", label: "Finanças", icon: "finance", module: "finance" },
   { href: "/crm", label: "CRM", icon: "crm", module: "crm" },
+  { href: "/revisao", label: "Revisão semanal", icon: "review" },
   { href: "/assistente", label: "Assistente IA", icon: "ai" },
 ];
 
