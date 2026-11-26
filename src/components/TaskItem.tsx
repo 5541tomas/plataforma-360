@@ -1,4 +1,4 @@
-import { toggleTask } from "@/app/(app)/objetivos/actions";
+import { deleteTask, toggleTask } from "@/app/(app)/objetivos/actions";
 
 export function TaskItem({ t, meta, tag }: { t: { id: string; title: string; done: boolean }; meta?: string; tag?: { label: string; cls: string } }) {
   return (
@@ -16,6 +16,10 @@ export function TaskItem({ t, meta, tag }: { t: { id: string; title: string; don
         {meta && <span className="text-xs text-muted">{meta}</span>}
       </div>
       {tag && <span className={`chip ${tag.cls}`}>{tag.label}</span>}
+      <form action={deleteTask}>
+        <input type="hidden" name="id" value={t.id} />
+        <button aria-label={`Apagar tarefa: ${t.title}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-soft hover:text-warn">×</button>
+      </form>
     </li>
   );
 }

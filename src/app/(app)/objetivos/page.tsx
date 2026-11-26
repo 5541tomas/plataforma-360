@@ -3,7 +3,7 @@ import { requireModule, canWrite } from "@/lib/context";
 import { krProgress, today, eur } from "@/lib/format";
 import { Disclosure, Empty, PageHeader, Progress } from "@/components/ui";
 import { TaskItem } from "@/components/TaskItem";
-import { createGoal, createHabit, createKeyResult, createTask, toggleHabit, updateKeyResult } from "./actions";
+import { archiveHabit, createGoal, createHabit, createKeyResult, createTask, deleteGoal, deleteKeyResult, toggleHabit, updateGoal, updateKeyResult } from "./actions";
 
 const AREAS = ["Negócio", "Finanças", "Saúde", "Relações", "Aprendizagem", "Lazer"];
 const HORIZON: Record<string, string> = { vision: "Visão", year: "Anual", quarter: "Trimestral", month: "Mensal" };
@@ -117,6 +117,10 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
                           <button className="btn-ghost !min-h-9 !px-3 !text-xs">Atualizar</button>
                         </form>
                       )}
+                      {write && (
+                        <form action={deleteKeyResult}><input type="hidden" name="id" value={k.id} />
+                          <button className="min-h-7 text-[11px] text-muted hover:text-warn" aria-label={`Remover KR ${k.label}`}>Remover KR</button></form>
+                      )}
                     </div>
                   );
                 })}
@@ -133,6 +137,25 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
                     <label className="flex flex-col gap-1.5"><span className="label">Alvo</span><input name="target_value" type="number" step="any" required className="input" /></label>
                     <label className="flex flex-col gap-1.5"><span className="label">Unidade</span><input name="unit" className="input" placeholder="€, %, clientes…" /></label>
                     <button className="btn">Adicionar</button>
+                  </form>
+                </details>
+              )}
+              {write && (
+                <details>
+                  <summary className="cursor-pointer text-sm font-medium text-muted">Editar objetivo</summary>
+                  <form action={updateGoal} className="mt-3 grid gap-3 grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-end">
+                    <input type="hidden" name="id" value={g.id} />
+                    <label className="flex flex-col gap-1.5 col-span-full"><span className="label">Objetivo</span><input name="title" defaultValue={g.title} className="input" required /></label>
+                    <label className="flex flex-col gap-1.5"><span className="label">Área</span><select name="area" defaultValue={g.area} className="input">{AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
+                    <label className="flex flex-col gap-1.5"><span className="label">Estado</span><select name="status" defaultValue={g.status} className="input">
+                      <option value="active">Ativo</option><option value="done">Concluído</option><option value="paused">Em pausa</option><option value="dropped">Abandonado</option></select></label>
+                    <label className="flex items-center gap-2 pb-3 text-sm"><input type="checkbox" name="shared" defaultChecked={!g.is_private} className="h-4 w-4" /> Partilhado</label>
+                    <button className="btn">Guardar</button>
+                  </form>
+                  <form action={deleteGoal} className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                    <input type="hidden" name="id" value={g.id} />
+                    <label className="flex items-center gap-2"><input type="checkbox" name="confirm" required className="h-4 w-4" /> Confirmo</label>
+                    <button className="font-medium text-warn min-h-9">Apagar objetivo e KRs</button>
                   </form>
                 </details>
               )}
@@ -170,6 +193,8 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
                     {streak}d {doneToday ? "✓" : "+"}
                   </button>
                 </form>
+                <form action={archiveHabit}><input type="hidden" name="id" value={hb.id} />
+                  <button aria-label={`Arquivar hábito ${hb.name}`} className="min-h-9 px-1 text-xs text-muted hover:text-warn">×</button></form>
               </div>
             );
           })}

@@ -95,3 +95,47 @@ export async function toggleTask(formData: FormData) {
   refresh();
   revalidatePath("/crm");
 }
+
+export async function updateGoal(formData: FormData) {
+  await requireModule("goals", "write");
+  const supabase = await createClient();
+  const { error } = await supabase.from("goals").update({
+    title: String(formData.get("title")),
+    area: String(formData.get("area")),
+    status: String(formData.get("status")),
+    is_private: formData.get("shared") !== "on",
+  }).eq("id", String(formData.get("id")));
+  if (error) throw new Error(error.message);
+  refresh();
+}
+
+export async function deleteGoal(formData: FormData) {
+  await requireModule("goals", "write");
+  const supabase = await createClient();
+  if (formData.get("confirm") !== "on") throw new Error("Confirma que queres apagar.");
+  const { error } = await supabase.from("goals").delete().eq("id", String(formData.get("id")));
+  if (error) throw new Error(error.message);
+  refresh();
+}
+
+export async function deleteKeyResult(formData: FormData) {
+  await requireModule("goals", "write");
+  const supabase = await createClient();
+  await supabase.from("key_results").delete().eq("id", String(formData.get("id")));
+  refresh();
+}
+
+export async function archiveHabit(formData: FormData) {
+  await getContext();
+  const supabase = await createClient();
+  await supabase.from("habits").update({ archived: true }).eq("id", String(formData.get("id")));
+  refresh();
+}
+
+export async function deleteTask(formData: FormData) {
+  await getContext();
+  const supabase = await createClient();
+  await supabase.from("tasks").delete().eq("id", String(formData.get("id")));
+  refresh();
+  revalidatePath("/crm");
+}

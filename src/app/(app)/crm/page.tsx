@@ -109,7 +109,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                     <article key={d.id} className="flex flex-col gap-2.5 rounded-[14px] bg-card p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold">{d.title}</div>
+                          <Link href={`/crm/${d.id}`} className="text-sm font-semibold hover:text-accent-ink">{d.title}</Link>
                           {d.company_name && <div className="text-xs text-muted">{d.company_name}</div>}
                         </div>
                         <span className={`chip ${d.kind === "retainer" ? "bg-accent-soft text-accent-ink" : "bg-warn-soft text-[#8F4300]"}`}>{d.kind === "retainer" ? "Avença" : "Pontual"}</span>

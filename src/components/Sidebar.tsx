@@ -17,6 +17,7 @@ const items: { href: string; label: string; icon: keyof typeof icons; module?: M
   { href: "/crm", label: "CRM", icon: "crm", module: "crm" },
 ];
 
+
 export function Sidebar({ orgName, userName, perms }: { orgName: string; userName: string; perms: Record<Module, Access> }) {
   const path = usePathname();
   return (
@@ -41,10 +42,15 @@ export function Sidebar({ orgName, userName, perms }: { orgName: string; userNam
             </li>
           );
         })}
+        <li className="md:hidden"><Link href="/definicoes" className="flex items-center rounded-[10px] px-3 py-2.5 text-sm whitespace-nowrap text-ink-2">Definições</Link></li>
       </ul>
-      <form action="/auth/signout" method="post" className="hidden md:block mt-auto">
+      <div className="hidden md:flex mt-auto flex-col gap-1">
+      <Link href="/definicoes" aria-current={path.startsWith("/definicoes") ? "page" : undefined}
+        className={`rounded-[10px] px-3 py-2.5 text-sm ${path.startsWith("/definicoes") ? "bg-white font-semibold" : "text-ink-2 hover:bg-white/60"}`}>Definições</Link>
+      <form action="/auth/signout" method="post">
         <button className="w-full text-left rounded-[10px] px-3 py-2.5 text-sm text-muted hover:bg-white/60">Terminar sessão</button>
       </form>
+      </div>
     </nav>
   );
 }
