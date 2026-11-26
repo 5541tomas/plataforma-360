@@ -87,6 +87,9 @@ export async function goalEngine(supabase: DB, orgId: string, yearParam?: number
   const sentMonth = new Set((sentActs ?? []).filter((a) => new Date(a.occurred_at) >= monthStart).map((a) => a.deal_id)).size;
   const newWeek = all.filter((d) => new Date(d.created_at) >= weekStart).length;
   const newMonth = all.filter((d) => new Date(d.created_at) >= monthStart).length;
+  const winsWeek = all.filter((d) => d.status === "won" && d.won_at && new Date(d.won_at) >= weekStart).length;
+  // Vendido acumulado mês a mês (para o gráfico)
+  const soldByMonth = Array.from({ length: 12 }, (_, m) => won.filter((d) => new Date(d.won_at!).getMonth() <= m).reduce((a, d) => a + Number(d.total_value), 0));
 
   // Ritmo: quanto devia estar vendido hoje (pelos objetivos trimestrais, se existirem)
   const quarters = (goals ?? []).filter((g) => g.horizon === "quarter" && new Date(g.period_start).getFullYear() === year)
@@ -106,6 +109,8 @@ export async function goalEngine(supabase: DB, orgId: string, yearParam?: number
     }, 0);
   }
   const pace = started ? sold - expectedNow : 0;
+  // Projeção para dezembro: ao ritmo atual (a partir de ~15% do ano); antes disso, vendido + pipeline ponderado
+  const projection = !started ? pipelineYear : elapsed >= 0.15 ? Math.max(sold + pipelineYear * 0.5, sold / elapsed) : sold + pipelineYear;
 
   // Mix de produtos: vendido vs plano
   const soldByKey = new Map<string, number>();
@@ -131,7 +136,8 @@ export async function goalEngine(supabase: DB, orgId: string, yearParam?: number
     winsNeeded, proposalsNeeded, convNeeded, consultiveShare, directGap: gap * (1 - consultiveShare), weeksLeft, monthsLeft, started, elapsed, expectedNow, pace,
     perWeek: { wins: per(winsNeeded, weeksLeft), proposals: per(proposalsNeeded, weeksLeft), conversations: per(convNeeded, weeksLeft) },
     perMonth: { wins: per(winsNeeded, monthsLeft), proposals: per(proposalsNeeded, monthsLeft), conversations: per(convNeeded, monthsLeft) },
-    actual: { sentWeek, sentMonth, newWeek, newMonth },
+    actual: { sentWeek, sentMonth, newWeek, newMonth, winsWeek },
+    soldByMonth, projection,
     quarters, mix, alerts, settings,
   };
 }
