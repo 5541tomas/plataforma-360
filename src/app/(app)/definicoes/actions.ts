@@ -10,6 +10,8 @@ export async function updateProfile(formData: FormData) {
   await getContext();
   const supabase = await createClient();
   await supabase.rpc("ensure_profile", { p_name: String(formData.get("full_name")) });
+  const ctx2 = await getContext();
+  await supabase.from("profiles").update({ phone: String(formData.get("phone") ?? "").trim() || null }).eq("id", ctx2.userId);
   revalidatePath("/", "layout");
   back("Perfil atualizado.");
 }
@@ -30,7 +32,7 @@ export async function renameOrg(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.from("organizations").update({
     name: String(formData.get("name")),
-    ...Object.fromEntries(["legal_name", "nif", "address", "email", "phone", "website", "iban"].map((k) => [k, String(formData.get(k) ?? "").trim() || null])),
+    ...Object.fromEntries(["legal_name", "nif", "address", "email", "phone", "website", "iban", "about", "testimonials", "signature_name", "signature_role"].map((k) => [k, String(formData.get(k) ?? "").trim() || null])),
   }).eq("id", ctx.org.id);
   if (error) back(error.message, false);
   revalidatePath("/", "layout");

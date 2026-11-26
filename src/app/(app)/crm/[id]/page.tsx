@@ -6,6 +6,8 @@ import { eur, eur2, dateShort, today } from "@/lib/format";
 import { Empty, PageHeader } from "@/components/ui";
 import { addActivity, addContactToDeal, deleteDeal, moveDeal, updateContact, updateDeal } from "../actions";
 import { createProposal } from "../proposal-actions";
+import { WhatsAppMenu } from "@/components/WhatsAppMenu";
+import { dealTemplates } from "@/lib/whatsapp";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -26,8 +28,9 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <PageHeader eyebrow={deal.company_name ?? "Sem empresa"} title={deal.title}>
+      <PageHeader eyebrow={[deal.company_name ?? "Sem empresa", deal.product_name, deal.source && `Origem: ${deal.source}`].filter(Boolean).join(" · ")} title={deal.title}>
         <Link href={`/crm?p=${deal.pipeline_id}`} className="btn-ghost">‹ Pipeline</Link>
+        <WhatsAppMenu phone={deal.contact_phone} templates={dealTemplates({ contact: deal.contact_name, title: deal.title, me: ctx.name, hasProposal: (proposals?.length ?? 0) > 0 })} />
         {write && (
           <form action={moveDeal} className="flex gap-2">
             <input type="hidden" name="deal_id" value={deal.id} />

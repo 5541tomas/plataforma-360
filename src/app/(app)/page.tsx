@@ -5,6 +5,8 @@ import { dateLong, eur, krProgress, today, dateShort } from "@/lib/format";
 import { Empty, Kpi, PageHeader, Progress } from "@/components/ui";
 import { TaskItem } from "@/components/TaskItem";
 import { createTask } from "./objetivos/actions";
+import { waLink } from "@/lib/whatsapp";
+import { WaIcon } from "@/components/WhatsAppMenu";
 
 export default async function HojePage() {
   const ctx = await getContext();
@@ -59,9 +61,22 @@ export default async function HojePage() {
     crm: { label: "CRM", cls: "bg-accent-soft text-accent-ink" }, goals: { label: "Objetivos", cls: "bg-good-soft text-[#1E6B30]" }, finance: { label: "Finanças", cls: "bg-warn-soft text-[#8F4300]" },
   };
 
+  const { data: me } = await supabase.from("profiles").select("phone").eq("id", ctx.userId).maybeSingle();
+  const pending = taskList.filter((x) => !x.done);
+  const resumo = [
+    `*Resumo 360 · ${dateLong()}*`,
+    "",
+    pending.length ? `✅ *Tarefas (${pending.length})*\n${pending.slice(0, 8).map((x) => `• ${x.title}`).join("\n")}` : "✅ Sem tarefas pendentes.",
+    crm && followUps.length ? `\n🤝 *Follow-ups*\n${followUps.map((d) => `• ${d.title}${d.is_cooling ? " (a arrefecer)" : ""}`).join("\n")}` : "",
+    crm ? `\n📈 Pipeline ponderado: ${eur(weighted)}` : "",
+    fin ? `💶 Liquidez: ${eur(liquidOf())} · Avenças: ${eur(mrr)}/mês` : "",
+    goalPct !== null ? `🎯 Objetivos: ${Math.round(goalPct)}%` : "",
+  ].filter(Boolean).join("\n");
+
   return (
     <>
       <PageHeader eyebrow={dateLong()} title={`Olá, ${ctx.name.split(" ")[0]}. Eis o teu dia em 360°.`}>
+        <a href={waLink(me?.phone, resumo)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl min-h-11 px-4 text-sm font-semibold text-white bg-[#128C4A] hover:brightness-110" title={me?.phone ? "Abre o WhatsApp com o resumo do dia" : "Define o teu telemóvel em Definições"}><WaIcon /> Resumo no WhatsApp</a>
         <form action={createTask} className="flex gap-2">
           <label className="sr-only" htmlFor="qc">Captura rápida</label>
           <input id="qc" name="title" required placeholder="Captura rápida: nova tarefa para hoje" className="input min-w-[260px]" />

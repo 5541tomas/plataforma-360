@@ -27,8 +27,9 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
   const admin = ctx.role === "owner" || ctx.role === "admin";
   const supabase = await createClient();
   const { data: members } = await supabase.rpc("list_members", { p_org: ctx.org.id });
+  const { data: profile } = await supabase.from("profiles").select("phone").eq("id", ctx.userId).maybeSingle();
   const { data: google } = await supabase.from("integrations").select("account_email, last_sync_at").eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google").maybeSingle();
-  const { data: org } = await supabase.from("organizations").select("name, legal_name, nif, address, email, phone, website, iban").eq("id", ctx.org.id).single();
+  const { data: org } = await supabase.from("organizations").select("name, legal_name, nif, address, email, phone, website, iban, about, testimonials, signature_name, signature_role").eq("id", ctx.org.id).single();
 
   return (
     <>
@@ -41,6 +42,7 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
           <h2 className="h2">Perfil</h2>
           <p className="text-sm text-muted">{ctx.email}</p>
           <label className="flex flex-col gap-1.5"><span className="label">Nome</span><input name="full_name" defaultValue={ctx.name} className="input" required /></label>
+          <label className="flex flex-col gap-1.5"><span className="label">Telemóvel (para o resumo no WhatsApp)</span><input name="phone" type="tel" defaultValue={profile?.phone ?? ""} placeholder="+351 912 345 678" className="input" /></label>
           <button className="btn self-start">Guardar</button>
         </form>
         <form action={changePassword} className="card flex flex-col gap-3">
@@ -62,6 +64,10 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
               <label className="flex flex-col gap-1"><span className="label">Site</span><input name="website" defaultValue={org?.website ?? ""} className="input" /></label>
               <label className="flex flex-col gap-1 col-span-2"><span className="label">Morada</span><input name="address" defaultValue={org?.address ?? ""} className="input" /></label>
               <label className="flex flex-col gap-1 col-span-2"><span className="label">IBAN</span><input name="iban" defaultValue={org?.iban ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1"><span className="label">Quem assina as propostas</span><input name="signature_name" defaultValue={org?.signature_name ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1"><span className="label">Função</span><input name="signature_role" defaultValue={org?.signature_role ?? ""} placeholder="Ex.: Consultor" className="input" /></label>
+              <label className="flex flex-col gap-1 col-span-2"><span className="label">Sobre (aparece nas propostas)</span><textarea name="about" rows={4} defaultValue={org?.about ?? ""} className="input py-2.5" placeholder="Quem és, experiência, para quem trabalhas e resultados." /></label>
+              <label className="flex flex-col gap-1 col-span-2"><span className="label">Testemunhos (um por parágrafo, “texto — autor”)</span><textarea name="testimonials" rows={4} defaultValue={org?.testimonials ?? ""} className="input py-2.5" placeholder={"O programa mudou a forma como gerimos a equipa. — Ana Silva, CEO da Exemplo"} /></label>
             </div>
             <button className="btn self-start">Guardar</button>
           </form>
