@@ -28,10 +28,13 @@ export async function changePassword(formData: FormData) {
 export async function renameOrg(formData: FormData) {
   const ctx = await getContext();
   const supabase = await createClient();
-  const { error } = await supabase.from("organizations").update({ name: String(formData.get("name")) }).eq("id", ctx.org.id);
+  const { error } = await supabase.from("organizations").update({
+    name: String(formData.get("name")),
+    ...Object.fromEntries(["legal_name", "nif", "address", "email", "phone", "website", "iban"].map((k) => [k, String(formData.get(k) ?? "").trim() || null])),
+  }).eq("id", ctx.org.id);
   if (error) back(error.message, false);
   revalidatePath("/", "layout");
-  back("Nome da empresa atualizado.");
+  back("Dados da empresa atualizados.");
 }
 
 export async function addMember(formData: FormData) {
@@ -67,4 +70,29 @@ export async function removeMember(formData: FormData) {
   if (error) back(error.message, false);
   revalidatePath("/definicoes");
   back("Membro removido.");
+}
+
+export async function syncGoogleNow() {
+  const ctx = await getContext();
+  const supabase = await createClient();
+  const { syncGoogle } = await import("@/lib/google");
+  let msg: string;
+  try {
+    const r = await syncGoogle(supabase, ctx.org.id, ctx.userId);
+    msg = `Sincronizado: ${r.emails} emails e ${r.meetings} reuniões novas no CRM.`;
+  } catch (e) {
+    back(e instanceof Error ? e.message : "Erro ao sincronizar.", false);
+    return;
+  }
+  revalidatePath("/crm", "layout"); revalidatePath("/");
+  back(msg);
+}
+
+export async function disconnectGoogle() {
+  const ctx = await getContext();
+  const supabase = await createClient();
+  const { data } = await supabase.from("integrations").select("refresh_token").eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google").maybeSingle();
+  if (data?.refresh_token) await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(data.refresh_token)}`, { method: "POST" }).catch(() => null);
+  await supabase.from("integrations").delete().eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google");
+  back("Conta Google desligada.");
 }

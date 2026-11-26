@@ -7,6 +7,7 @@ const icons = {
   hoje: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
   goals: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></>,
   finance: <><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M7 15h4" /></>,
+  ai: <><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></>,
   crm: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18.5 14.8c1.6.8 2.6 2.6 3 5.2" /></>,
 };
 
@@ -15,6 +16,7 @@ const items: { href: string; label: string; icon: keyof typeof icons; module?: M
   { href: "/objetivos", label: "Objetivos", icon: "goals", module: "goals" },
   { href: "/financas", label: "Finanças", icon: "finance", module: "finance" },
   { href: "/crm", label: "CRM", icon: "crm", module: "crm" },
+  { href: "/assistente", label: "Assistente IA", icon: "ai" },
 ];
 
 

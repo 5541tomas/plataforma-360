@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
-import { addMember, changePassword, removeMember, renameOrg, updateMember, updateProfile } from "./actions";
+import { addMember, changePassword, disconnectGoogle, removeMember, renameOrg, syncGoogleNow, updateMember, updateProfile } from "./actions";
+import { googleConfigured } from "@/lib/google";
 
 const LEVELS = [["none", "Sem acesso"], ["read", "Ler"], ["write", "Editar"]] as const;
 const MODULES = [["perm_goals", "Objetivos"], ["perm_finance", "Finanças (empresa)"], ["perm_crm", "CRM"]] as const;
@@ -26,6 +27,8 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
   const admin = ctx.role === "owner" || ctx.role === "admin";
   const supabase = await createClient();
   const { data: members } = await supabase.rpc("list_members", { p_org: ctx.org.id });
+  const { data: google } = await supabase.from("integrations").select("account_email, last_sync_at").eq("org_id", ctx.org.id).eq("user_id", ctx.userId).eq("provider", "google").maybeSingle();
+  const { data: org } = await supabase.from("organizations").select("name, legal_name, nif, address, email, phone, website, iban").eq("id", ctx.org.id).single();
 
   return (
     <>
@@ -49,10 +52,33 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
         {admin && (
           <form action={renameOrg} className="card flex flex-col gap-3">
             <h2 className="h2">Empresa</h2>
-            <label className="flex flex-col gap-1.5"><span className="label">Nome</span><input name="name" defaultValue={ctx.org.name} className="input" required /></label>
+            <label className="flex flex-col gap-1.5"><span className="label">Nome na plataforma</span><input name="name" defaultValue={ctx.org.name} className="input" required /></label>
+            <p className="text-xs text-muted">Os dados abaixo aparecem nas propostas.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1 col-span-2"><span className="label">Denominação legal</span><input name="legal_name" defaultValue={org?.legal_name ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1"><span className="label">NIF</span><input name="nif" defaultValue={org?.nif ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1"><span className="label">Telefone</span><input name="phone" defaultValue={org?.phone ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1"><span className="label">Email</span><input name="email" type="email" defaultValue={org?.email ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1"><span className="label">Site</span><input name="website" defaultValue={org?.website ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1 col-span-2"><span className="label">Morada</span><input name="address" defaultValue={org?.address ?? ""} className="input" /></label>
+              <label className="flex flex-col gap-1 col-span-2"><span className="label">IBAN</span><input name="iban" defaultValue={org?.iban ?? ""} className="input" /></label>
+            </div>
             <button className="btn self-start">Guardar</button>
           </form>
         )}
+      </section>
+
+      <section className="card flex flex-col gap-3">
+        <h2 className="h2">Gmail e Google Calendar</h2>
+        <p className="text-sm text-muted">Os emails e reuniões com contactos do CRM (com email preenchido) entram automaticamente no histórico de cada negócio. Só leitura: a plataforma nunca envia nem apaga nada.</p>
+        {!googleConfigured() ? <p className="text-sm text-warn">A integração ainda não está configurada no servidor (faltam GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET).</p>
+          : google ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm">Ligado a <strong className="font-semibold">{google.account_email}</strong>{google.last_sync_at ? ` · última sincronização ${new Date(google.last_sync_at).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : ""}</span>
+              <form action={syncGoogleNow}><button className="btn">Sincronizar agora</button></form>
+              <form action={disconnectGoogle}><button className="min-h-11 px-2 text-sm font-medium text-warn">Desligar</button></form>
+            </div>
+          ) : <a href="/api/google/connect" className="btn self-start">Ligar conta Google</a>}
       </section>
 
       <section className="card flex flex-col gap-4">

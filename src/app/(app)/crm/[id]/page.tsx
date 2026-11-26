@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule, canWrite } from "@/lib/context";
-import { eur, dateShort, today } from "@/lib/format";
+import { eur, eur2, dateShort, today } from "@/lib/format";
 import { Empty, PageHeader } from "@/components/ui";
 import { addActivity, addContactToDeal, deleteDeal, moveDeal, updateContact, updateDeal } from "../actions";
+import { createProposal } from "../proposal-actions";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -15,6 +16,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
   const supabase = await createClient();
   const { data: deal } = await supabase.from("v_deals").select("*").eq("id", id).eq("org_id", ctx.org.id).maybeSingle();
   if (!deal) notFound();
+  const { data: proposals } = await supabase.from("proposals").select("id, number, title, total, status, recurring, created_at").eq("deal_id", id).order("created_at", { ascending: false });
   const [{ data: stages }, { data: acts }, { data: contact }, { data: tasks }] = await Promise.all([
     supabase.from("stages").select("id, name").eq("pipeline_id", deal.pipeline_id).order("position"),
     supabase.from("activities").select("id, type, summary, occurred_at").eq("deal_id", id).order("occurred_at", { ascending: false }),
@@ -106,6 +108,20 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
               </form>
             ) : <Empty>Sem contacto.</Empty>}
             {contact?.email && <a href={`mailto:${contact.email}`} className="text-sm font-medium text-accent-ink">Enviar email</a>}
+          </div>
+
+          <div className="card flex flex-col gap-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="h2">Propostas</h2>
+              {write && <form action={createProposal}><input type="hidden" name="deal_id" value={deal.id} /><button className="btn-ghost !min-h-10">+ Nova proposta</button></form>}
+            </div>
+            {(proposals?.length ?? 0) === 0 ? <Empty>Sem propostas. Cria uma a partir deste negócio — fica pronta a enviar em PDF.</Empty> : proposals!.map((pr) => (
+              <Link key={pr.id} href={`/crm/${deal.id}/proposta/${pr.id}`} className="flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 hover:bg-soft">
+                <div className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-medium truncate">{pr.number} · {pr.title}</span><span className="text-xs text-muted">{dateShort(pr.created_at)}</span></div>
+                <span className="text-sm font-semibold">{eur2(pr.total)}{pr.recurring ? "/mês" : ""}</span>
+                <span className={`chip ${pr.status === "accepted" ? "bg-good-soft text-[#1E6B30]" : pr.status === "sent" ? "bg-accent-soft text-accent-ink" : pr.status === "rejected" ? "bg-warn-soft text-[#8F4300]" : "bg-[#F2F2F5] text-ink-2"}`}>{({ draft: "Rascunho", sent: "Enviada", accepted: "Aceite", rejected: "Recusada" } as Record<string, string>)[pr.status]}</span>
+              </Link>
+            ))}
           </div>
 
           {write && (

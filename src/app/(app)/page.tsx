@@ -122,6 +122,12 @@ export default async function HojePage() {
             ))}
           </div>
         )}
+        <form action="/assistente" className="card flex flex-col gap-3">
+          <h2 className="h2">Pergunta ao assistente</h2>
+          <label htmlFor="aq" className="sr-only">Pergunta</label>
+          <input id="aq" name="q" required placeholder="Ex.: Quanto posso pagar-me este mês?" className="input" />
+          <button className="btn self-start">Perguntar</button>
+        </form>
         <div className="rounded-[20px] bg-ink p-6 text-[#F5F5F7] flex flex-col gap-3">
           <h2 className="h2">Ligações 360°</h2>
           <p className="text-[13px] text-[#AEAEB2]">Quando ganhas uma avença no CRM, a plataforma cria a receita recorrente nas Finanças, atualiza os KRs automáticos e a tesouraria prevista, e cria a tarefa de onboarding.</p>
