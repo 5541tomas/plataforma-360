@@ -4,7 +4,9 @@
 -- privadas por utilizador, objetivos (OKR + tarefas + hábitos) e CRM.
 -- =====================================================================
 
-create extension if not exists "pgcrypto";
+-- Tudo vive no schema p360 (isolado de outras apps no mesmo projeto Supabase)
+create schema if not exists p360;
+set search_path = p360, public, extensions;
 
 -- ---------- Tipos ----------
 create type access_level as enum ('none', 'read', 'write');
@@ -67,17 +69,17 @@ create table invitations (
 
 -- ---------- Funções de permissão (security definer evita recursão em RLS) ----------
 create or replace function is_member(p_org uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = p360, public as $$
   select exists (select 1 from members where org_id = p_org and user_id = auth.uid());
 $$;
 
 create or replace function is_org_admin(p_org uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = p360, public as $$
   select exists (select 1 from members where org_id = p_org and user_id = auth.uid() and role in ('owner','admin'));
 $$;
 
 create or replace function module_access(p_org uuid, p_module app_module) returns access_level
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = p360, public as $$
   select coalesce((
     select case p_module
       when 'goals'   then perm_goals
@@ -89,10 +91,10 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 create or replace function can_read(p_org uuid, p_module app_module) returns boolean
-language sql stable as $$ select module_access(p_org, p_module) in ('read','write'); $$;
+language sql stable set search_path = p360, public as $$ select module_access(p_org, p_module) in ('read','write'); $$;
 
 create or replace function can_write(p_org uuid, p_module app_module) returns boolean
-language sql stable as $$ select module_access(p_org, p_module) = 'write'; $$;
+language sql stable set search_path = p360, public as $$ select module_access(p_org, p_module) = 'write'; $$;
 
 -- ---------- Objetivos ----------
 create table goals (
@@ -160,7 +162,7 @@ create table accounts (
 
 -- Contas pessoais: só o dono. Contas da empresa: permissão de finanças.
 create or replace function account_readable(p_account uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = p360, public as $$
   select exists (
     select 1 from accounts a where a.id = p_account and (
       (a.scope = 'personal' and a.owner_id = auth.uid() and is_member(a.org_id)) or
@@ -168,7 +170,7 @@ language sql stable security definer set search_path = public as $$
     ));
 $$;
 create or replace function account_writable(p_account uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = p360, public as $$
   select exists (
     select 1 from accounts a where a.id = p_account and (
       (a.scope = 'personal' and a.owner_id = auth.uid() and is_member(a.org_id)) or
@@ -480,23 +482,25 @@ create policy proposals_write on proposals  for all using (can_write(org_id, 'cr
 -- Automação
 -- =====================================================================
 
--- Perfil automático ao registar
-create or replace function handle_new_user() returns trigger
-language plpgsql security definer set search_path = public as $$
+-- Perfil criado/atualizado pela própria app (sem triggers em auth.users,
+-- para não interferir com outras apps que partilham o mesmo Auth)
+create or replace function ensure_profile(p_name text default null) returns void
+language plpgsql security definer set search_path = p360, public as $$
 begin
-  insert into profiles (id, full_name) values (new.id, coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)));
-  return new;
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  insert into profiles (id, full_name)
+  values (auth.uid(), coalesce(p_name, (select coalesce(raw_user_meta_data->>'full_name', split_part(email, '@', 1)) from auth.users where id = auth.uid())))
+  on conflict (id) do update set full_name = coalesce(p_name, profiles.full_name);
 end $$;
-create trigger on_auth_user_created after insert on auth.users
-  for each row execute function handle_new_user();
 
 -- Criar organização com dados iniciais (dono com acesso total, pipeline e categorias)
 create or replace function create_organization(p_name text) returns uuid
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = p360, public as $$
 declare
   v_org uuid; v_pipe uuid;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
+  perform ensure_profile();
   insert into organizations (name, created_by) values (p_name, auth.uid()) returning id into v_org;
   insert into members (org_id, user_id, role, perm_goals, perm_finance, perm_crm)
     values (v_org, auth.uid(), 'owner', 'write', 'write', 'write');
@@ -534,7 +538,7 @@ end $$;
 
 -- Mudar de etapa atualiza estado do negócio; ganhar uma avença cria receita recorrente
 create or replace function deals_on_stage_change() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = p360, public as $$
 declare
   v_stage stages%rowtype; v_cat uuid;
 begin
@@ -566,7 +570,7 @@ create trigger deals_stage_trg before insert or update of stage_id on deals
 
 -- Actividade atualiza "último contacto" do negócio (alerta de negócio a arrefecer)
 create or replace function activities_touch_deal() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = p360, public as $$
 begin
   if new.deal_id is not null and new.done then
     update deals set last_activity_at = greatest(last_activity_at, new.occurred_at) where id = new.deal_id;
@@ -628,3 +632,14 @@ select kr.*,
       where h.key_result_id = kr.id)
   end as computed_value
 from key_results kr;
+
+-- =====================================================================
+-- Acesso via API (PostgREST): o schema p360 tem de estar em "Exposed schemas"
+-- =====================================================================
+grant usage on schema p360 to anon, authenticated, service_role;
+grant select, insert, update, delete on all tables in schema p360 to authenticated, service_role;
+grant usage, select on all sequences in schema p360 to authenticated, service_role;
+grant execute on all functions in schema p360 to authenticated, service_role;
+revoke execute on all functions in schema p360 from anon, public;
+alter default privileges in schema p360 grant select, insert, update, delete on tables to authenticated, service_role;
+alter default privileges in schema p360 grant execute on functions to authenticated, service_role;

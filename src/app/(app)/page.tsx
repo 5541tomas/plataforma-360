@@ -11,6 +11,7 @@ export default async function HojePage() {
   const supabase = await createClient();
   const fin = canRead(ctx, "finance"), crm = canRead(ctx, "crm"), goals = canRead(ctx, "goals");
   const t = today();
+  const in3 = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
   const in90 = new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10);
   const sixAgo = new Date(); sixAgo.setMonth(sixAgo.getMonth() - 5, 1);
   const none = Promise.resolve({ data: null });
@@ -21,7 +22,7 @@ export default async function HojePage() {
     crm ? supabase.from("v_deals").select("id, title, company_name, weighted_value, expected_close, is_cooling, last_activity_at, status").eq("org_id", ctx.org.id).eq("status", "open") : none,
     goals ? supabase.from("v_key_results").select("start_value, target_value, computed_value, goal_id, label") .eq("org_id", ctx.org.id) : none,
     supabase.from("tasks").select("id, title, done, due_date, module, key_result_id").eq("org_id", ctx.org.id).eq("owner_id", ctx.userId)
-      .or(`and(done.eq.false,due_date.lte.${t}),and(done.eq.true,done_at.gte.${t})`).order("done").order("due_date").limit(12),
+      .or(`and(done.eq.false,due_date.lte.${in3}),and(done.eq.true,done_at.gte.${t})`).order("done").order("due_date").limit(12),
     fin ? supabase.from("transactions").select("date, amount, is_transfer").eq("org_id", ctx.org.id).gte("date", sixAgo.toISOString().slice(0, 10)) : none,
   ]);
 
@@ -64,11 +65,11 @@ export default async function HojePage() {
         <form action={createTask} className="flex gap-2">
           <label className="sr-only" htmlFor="qc">Captura rápida</label>
           <input id="qc" name="title" required placeholder="Captura rápida: nova tarefa para hoje" className="input min-w-[260px]" />
-          <button className="btn">+ Adicionar</button>
+          <button className="btn whitespace-nowrap">+ Adicionar</button>
         </form>
       </PageHeader>
 
-      <section aria-label="Indicadores" className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
+      <section aria-label="Indicadores" className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
         {fin && <Kpi label="Liquidez consolidada" value={eur(liquidOf())} hint={`Pessoal ${eur(liquidOf("personal"))} · Empresa ${eur(liquidOf("business"))}`} />}
         {fin && <Kpi label="Tesouraria prevista · 90 dias" value={eur(forecast)} tone={forecast >= liquidOf() ? "good" : "warn"} hint={`Recorrentes ${monthlyNet >= 0 ? "+" : ""}${eur(monthlyNet)}/mês + pipeline`} />}
         {crm && <Kpi label="Pipeline ponderado" value={eur(weighted)} hint={`${openDeals.length} oportunidades em aberto`} />}
@@ -78,9 +79,9 @@ export default async function HojePage() {
 
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">
         <div className="card flex flex-col gap-3">
-          <div className="flex items-baseline justify-between"><h2 className="h2">Foco de hoje</h2><span className="text-[13px] text-muted">{taskList.filter((x) => x.done).length} de {taskList.length} feitas</span></div>
+          <div className="flex items-baseline justify-between"><h2 className="h2">Foco · hoje e próximos dias</h2><span className="text-[13px] text-muted">{taskList.filter((x) => x.done).length} de {taskList.length} feitas</span></div>
           {taskList.length === 0 ? <Empty>Nada pendente para hoje. Usa a captura rápida acima.</Empty> : (
-            <ul className="flex flex-col">{taskList.map((tk) => <TaskItem key={tk.id} t={tk} meta={tk.due_date && tk.due_date < t ? `Atrasada · ${dateShort(tk.due_date)}` : undefined} tag={tagFor[tk.module]} />)}</ul>
+            <ul className="flex flex-col">{taskList.map((tk) => <TaskItem key={tk.id} t={tk} meta={tk.due_date && tk.due_date < t ? `Atrasada · ${dateShort(tk.due_date)}` : tk.due_date && tk.due_date > t ? `Próxima · ${dateShort(tk.due_date)}` : undefined} tag={tagFor[tk.module]} />)}</ul>
           )}
         </div>
 
