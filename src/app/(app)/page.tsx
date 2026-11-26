@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getContext, canRead, canWrite } from "@/lib/context";
+import { SetupChecklist } from "@/components/SetupChecklist";
 import { dateLong, eur, today, dateShort } from "@/lib/format";
 import { Empty } from "@/components/ui";
 import { TaskCheck, TaskItem } from "@/components/TaskItem";
@@ -27,10 +28,12 @@ export default async function HojePage() {
   if (fin) await supabase.rpc("sync_receivables", { p_org: ctx.org.id });
   const crmWrite = crm && canWrite(ctx, "crm");
   if (crmWrite) await supabase.rpc("run_automations", { p_org: ctx.org.id });
-  const [queueQ, hotQ] = crm ? await Promise.all([
+  const dayEnd = new Date(); dayEnd.setHours(23, 59, 59, 999);
+  const [queueQ, hotQ, meetQ] = crm ? await Promise.all([
     supabase.from("outbox").select("id", { count: "exact", head: true }).eq("org_id", ctx.org.id).eq("status", "pending").is("campaign_id", null),
     supabase.from("contacts").select("id, name, score").eq("org_id", ctx.org.id).gte("score", 60).is("unsubscribed_at", null).order("score", { ascending: false }).limit(2),
-  ]) : [{ count: 0 }, { data: [] }];
+    supabase.from("bookings").select("id, starts_at, name, deal_id").eq("org_id", ctx.org.id).eq("status", "confirmed").gte("ends_at", new Date().toISOString()).lte("starts_at", dayEnd.toISOString()).order("starts_at"),
+  ]) : [{ count: 0 }, { data: [] }, { data: [] }];
 
   const [bal, rec, cooling, ending, tasks, tx, rcv, debts, me] = await Promise.all([
     fin ? supabase.from("v_account_balances").select("scope, type, balance").eq("org_id", ctx.org.id) : none,
@@ -66,6 +69,7 @@ export default async function HojePage() {
   // As 3 prioridades: atrasado primeiro, depois dinheiro por receber, negócios a arrefecer, tarefas de hoje, programas a terminar
   const prios: Prio[] = [];
   open.filter((x) => x.due_date && x.due_date < t).forEach((x) => prios.push({ key: x.id, kind: "task", title: x.title, meta: `Atrasada desde ${dateShort(x.due_date!)}`, task: x, tone: "warn" }));
+  ((meetQ.data ?? []) as { id: string; starts_at: string; name: string; deal_id: string | null }[]).forEach((m) => prios.push({ key: "bk" + m.id, kind: "client", title: `Reunião 1:1 com ${m.name}`, meta: `Hoje às ${new Intl.DateTimeFormat("pt-PT", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit" }).format(new Date(m.starts_at))} · prepara 3 perguntas`, href: m.deal_id ? `/crm/${m.deal_id}` : "/crm/agenda", tone: "good" }));
   if (crmWrite && (queueQ.count ?? 0) > 0) prios.push({ key: "queue", kind: "deal", title: `Aprovar ${queueQ.count} mensagem(ns) automática(s)`, meta: "Sequências de nutrição · nada sai sem ti", href: "/crm/automacoes", tone: "warn" });
   ((hotQ.data ?? []) as { id: string; name: string; score: number }[]).forEach((c) => prios.push({ key: "hot" + c.id, kind: "deal", title: `Lead quente: ${c.name}`, meta: `Pontuação ${c.score} · liga hoje`, href: `/crm/contactos/${c.id}`, tone: "accent" }));
   overdueRcv.slice(0, 2).forEach((r) => prios.push({ key: r.id, kind: "money", title: `Cobrar: ${r.description}`, meta: `${eur(r.amount)} · venceu a ${dateShort(r.due_date)}`, href: "/financas/cobrancas", tone: "warn" }));
@@ -97,15 +101,16 @@ export default async function HojePage() {
           <div className="text-[13px] font-medium uppercase tracking-[0.6px] text-muted">{dateLong()}</div>
           <h1 className="text-[34px] font-bold leading-tight tracking-[-0.8px]">{hello}, {ctx.name.split(" ")[0]}.</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <form action={createTask} className="flex gap-2">
+        <div className="flex w-full items-center gap-2.5 md:w-auto">
+          <form action={createTask} className="flex min-w-0 flex-1 gap-2">
             <label className="sr-only" htmlFor="qc">Captura rápida</label>
-            <input id="qc" name="title" required placeholder="Captura rápida: nova tarefa para hoje" className="input min-w-[240px]" />
-            <button className="btn whitespace-nowrap">+ Adicionar</button>
+            <input id="qc" name="title" required placeholder="Nova tarefa para hoje" className="input min-w-0 flex-1 md:min-w-[240px]" />
+            <button className="btn whitespace-nowrap" aria-label="Adicionar tarefa">+<span className="hidden sm:inline"> Adicionar</span></button>
           </form>
-          <a href={waLink(me.data?.phone, resumo)} target="_blank" rel="noopener noreferrer" aria-label="Enviar o resumo do dia para o meu WhatsApp" title={me.data?.phone ? "Resumo do dia no WhatsApp" : "Define o teu telemóvel em Definições"} className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#128C4A] text-white hover:brightness-110"><WaIcon size={20} /></a>
+          <a href={waLink(me.data?.phone, resumo)} target="_blank" rel="noopener noreferrer" aria-label="Enviar o resumo do dia para o meu WhatsApp" title={me.data?.phone ? "Resumo do dia no WhatsApp" : "Define o teu telemóvel em Definições"} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#128C4A] text-white hover:brightness-110"><WaIcon size={20} /></a>
         </div>
       </header>
+      <SetupChecklist ctx={ctx} />
 
       {/* Prioridades + meta */}
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">

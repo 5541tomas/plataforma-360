@@ -1,9 +1,21 @@
 {
   "name": "Plataforma 360",
   "short_name": "360",
+  "description": "Objetivos, finanças e CRM — tudo ligado.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F5F5F7",
   "theme_color": "#F5F5F7",
-  "lang": "pt-PT"
+  "lang": "pt-PT",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Hoje", "url": "/" },
+    { "name": "CRM", "url": "/crm" },
+    { "name": "Finanças", "url": "/financas" }
+  ]
 }

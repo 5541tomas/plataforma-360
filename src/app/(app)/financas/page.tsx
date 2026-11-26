@@ -27,7 +27,7 @@ function monthInfo(m?: string) {
   };
 }
 
-export default async function FinancasPage({ searchParams }: { searchParams: Promise<{ s?: Scope; m?: string; f?: string }> }) {
+export default async function FinancasPage({ searchParams }: { searchParams: Promise<{ s?: Scope; m?: string; f?: string; q?: string; novo?: string }> }) {
   const ctx = await requireModule("finance");
   const bizWrite = canWrite(ctx, "finance");
   const sp = await searchParams;
@@ -53,7 +53,9 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
   const accIds = (accounts ?? []).map((a) => a.id);
   let txq = supabase.from("transactions").select("id, date, description, amount, account_id, category_id, is_transfer")
     .in("account_id", accIds.length ? accIds : ["00000000-0000-0000-0000-000000000000"])
-    .gte("date", month.start).lte("date", month.end).order("date", { ascending: false }).order("created_at", { ascending: false });
+    .order("date", { ascending: false }).order("created_at", { ascending: false });
+  const q = (sp.q ?? "").trim().replace(/[%_,()]/g, " ").slice(0, 60);
+  txq = q ? txq.ilike("description", `%${q}%`) : txq.gte("date", month.start).lte("date", month.end);
   if (onlyUncat) txq = txq.is("category_id", null).eq("is_transfer", false);
   const { data: tx } = await txq.limit(400);
   const { data: monthAll } = accIds.length
@@ -120,7 +122,7 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
           </form>
         </Disclosure>
         {writableAccounts.length > 0 && (
-          <Disclosure label="+ Movimento" primary>
+          <Disclosure label="+ Movimento" primary open={sp.novo === "1"}>
             <form action={createTransaction} className="flex flex-col gap-3">
               <label className="flex flex-col gap-1.5"><span className="label">Descrição</span><input name="description" className="input" required /></label>
               <div className="grid grid-cols-2 gap-3">
@@ -229,7 +231,12 @@ export default async function FinancasPage({ searchParams }: { searchParams: Pro
 
       <section className="card flex flex-col gap-1">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="h2">{onlyUncat ? "Por categorizar" : "Movimentos"} · {month.label}</h2>
+          <h2 className="h2">{q ? `Pesquisa: “${q}”` : `${onlyUncat ? "Por categorizar" : "Movimentos"} · ${month.label}`}</h2>
+          <form action="/financas" className="flex gap-1.5">
+            <input type="hidden" name="s" value={scope} /><input type="hidden" name="m" value={month.key} />
+            <input name="q" defaultValue={q} placeholder="Pesquisar em todos os meses" aria-label="Pesquisar movimentos" className="input !min-h-9 !w-[200px] text-[13px]" />
+            {q && <Link href={qs({ q: undefined })} className="btn-ghost !min-h-9 text-[13px]">Limpar</Link>}
+          </form>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             {onlyUncat ? <Link href={qs({ f: undefined })} className="font-medium text-accent-ink">Ver todos</Link>
               : uncategorized > 0 && <Link href={qs({ f: "sem" })} className="font-medium text-accent-ink">Só por categorizar ({uncategorized})</Link>}

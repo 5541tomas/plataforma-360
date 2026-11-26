@@ -10,7 +10,10 @@ type M = { kind: "quiz" | "ebook"; title: string; subtitle: string | null; confi
 export async function generateMetadata({ params }: { params: Promise<{ org: string; slug: string }> }) {
   const { org, slug } = await params;
   const { data } = await anonClient().rpc("public_magnet_peek", { p_org: org, p_slug: slug });
-  return { title: data ? "Diagnóstico e recursos gratuitos" : "Página indisponível", description: "Descobre onde estás a perder clientes e o que mudar primeiro." };
+  const m = data as { title: string; subtitle: string | null; author: string; config?: { intro?: string } } | null;
+  if (!m) return { title: "Página indisponível" };
+  const description = m.subtitle || m.config?.intro || "Descobre onde estás a perder clientes e o que mudar primeiro.";
+  return { title: `${m.title} · ${m.author}`, description, openGraph: { title: m.title, description, type: "website", locale: "pt_PT" }, twitter: { card: "summary_large_image", title: m.title, description } };
 }
 
 export default async function MagnetPage({ params, searchParams }: { params: Promise<{ org: string; slug: string }>; searchParams: Promise<{ erro?: string; passo?: string; r?: string }> }) {

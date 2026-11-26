@@ -19,6 +19,8 @@
 }
 
 body { background: var(--color-bg); color: var(--color-ink); }
+/* Elementos absolutos (ex.: sr-only) dentro de zonas com scroll não podem alargar a página */
+.overflow-x-auto, .overflow-auto, .overflow-y-auto { position: relative; }
 
 @layer components {
   .card { @apply bg-card rounded-[20px] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]; }

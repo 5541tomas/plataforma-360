@@ -8,6 +8,8 @@ import { addActivity, addContactToDeal, deleteDeal, moveDeal, updateContact, upd
 import { createProposal } from "../proposal-actions";
 import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 import { Copilot } from "@/components/Copilot";
+import { CopyLink } from "@/components/CopyLink";
+import { headers } from "next/headers";
 import { aiConfigured } from "@/lib/ai";
 import { dealTemplates } from "@/lib/whatsapp";
 import { enrollContact } from "../automacoes/actions";
@@ -21,7 +23,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
   const supabase = await createClient();
   const { data: deal } = await supabase.from("v_deals").select("*").eq("id", id).eq("org_id", ctx.org.id).maybeSingle();
   if (!deal) notFound();
-  const { data: proposals } = await supabase.from("proposals").select("id, number, title, total, status, recurring, created_at").eq("deal_id", id).order("created_at", { ascending: false });
+  const { data: proposals } = await supabase.from("proposals").select("id, number, title, total, status, recurring, created_at, public_token, views, last_viewed_at, accepted_name, accepted_at").eq("deal_id", id).order("created_at", { ascending: false });
   const [{ data: stages }, { data: acts }, { data: contact }, { data: tasks }] = await Promise.all([
     supabase.from("stages").select("id, name").eq("pipeline_id", deal.pipeline_id).order("position"),
     supabase.from("activities").select("id, type, summary, occurred_at").eq("deal_id", id).order("occurred_at", { ascending: false }),
@@ -30,11 +32,17 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
   ]);
   const { data: seqs } = await supabase.from("sequences").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("created_at");
 
+  const hh = await headers();
+  const base = process.env.NEXT_PUBLIC_SITE_URL || `${hh.get("x-forwarded-proto") ?? "https"}://${hh.get("host")}`;
+  const sentProp = (proposals ?? []).find((x) => x.status === "sent" || x.status === "accepted");
+  const proposalUrl = sentProp ? `${base}/p/${sentProp.public_token}` : undefined;
+  const ago = (s: string) => { const m = Math.round((Date.now() - new Date(s).getTime()) / 60000); return m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m / 60)} h` : `há ${Math.round(m / 1440)} dias`; };
+
   return (
     <>
       <PageHeader eyebrow={[deal.company_name ?? "Sem empresa", deal.product_name, deal.source && `Origem: ${deal.source}`].filter(Boolean).join(" · ")} title={deal.title}>
         <Link href={`/crm?p=${deal.pipeline_id}`} className="btn-ghost">‹ Pipeline</Link>
-        <WhatsAppMenu phone={deal.contact_phone} templates={dealTemplates({ contact: deal.contact_name, title: deal.title, me: ctx.name, hasProposal: (proposals?.length ?? 0) > 0 })} />
+        <WhatsAppMenu phone={deal.contact_phone} templates={dealTemplates({ contact: deal.contact_name, title: deal.title, me: ctx.name, hasProposal: (proposals?.length ?? 0) > 0, proposalUrl })} />
         {write && (
           <form action={moveDeal} className="flex gap-2">
             <input type="hidden" name="deal_id" value={deal.id} />
@@ -134,12 +142,21 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
               <h2 className="h2">Propostas</h2>
               {write && <form action={createProposal}><input type="hidden" name="deal_id" value={deal.id} /><button className="btn-ghost !min-h-10">+ Nova proposta</button></form>}
             </div>
-            {(proposals?.length ?? 0) === 0 ? <Empty>Sem propostas. Cria uma a partir deste negócio — fica pronta a enviar em PDF.</Empty> : proposals!.map((pr) => (
-              <Link key={pr.id} href={`/crm/${deal.id}/proposta/${pr.id}`} className="flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 hover:bg-soft">
+            {(proposals?.length ?? 0) === 0 ? <Empty>Sem propostas. Cria uma a partir deste negócio — envia o link (com aceitação online) ou o PDF.</Empty> : proposals!.map((pr) => (
+              <div key={pr.id} className="flex flex-col gap-1.5">
+              <Link href={`/crm/${deal.id}/proposta/${pr.id}`} className="flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 hover:bg-soft">
                 <div className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-medium truncate">{pr.number} · {pr.title}</span><span className="text-xs text-muted">{dateShort(pr.created_at)}</span></div>
                 <span className="text-sm font-semibold">{eur2(pr.total)}{pr.recurring ? "/mês" : ""}</span>
                 <span className={`chip ${pr.status === "accepted" ? "bg-good-soft text-[#1E6B30]" : pr.status === "sent" ? "bg-accent-soft text-accent-ink" : pr.status === "rejected" ? "bg-warn-soft text-[#8F4300]" : "bg-[#F2F2F5] text-ink-2"}`}>{({ draft: "Rascunho", sent: "Enviada", accepted: "Aceite", rejected: "Recusada" } as Record<string, string>)[pr.status]}</span>
               </Link>
+              {(pr.status === "sent" || pr.status === "accepted") && (
+                <div className="flex flex-col gap-1 px-1 text-xs text-muted">
+                  <span>{pr.status === "accepted" && pr.accepted_name ? `✓ Aceite online por ${pr.accepted_name}` : pr.views > 0 ? `👁 Aberta ${pr.views}× · última ${ago(pr.last_viewed_at!)}` : "Ainda não foi aberta pelo cliente"}</span>
+                  {pr.status === "sent" && <CopyLink url={`${base}/p/${pr.public_token}`} />}
+                </div>
+              )}
+              {pr.status === "draft" && <span className="px-1 text-xs text-muted">Marca como “Enviada” para gerar o link com aceitação online.</span>}
+              </div>
             ))}
           </div>
 

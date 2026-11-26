@@ -8,7 +8,7 @@ import { createDeal, createPipeline } from "./actions";
 
 const SOURCES = ["Referência", "LinkedIn", "Site", "Instagram", "Evento", "Cliente antigo", "Outro"];
 
-export default async function CrmPage({ searchParams }: { searchParams: Promise<{ p?: string }> }) {
+export default async function CrmPage({ searchParams }: { searchParams: Promise<{ p?: string; nova?: string }> }) {
   const ctx = await requireModule("crm");
   const write = canWrite(ctx, "crm");
   const supabase = await createClient();
@@ -56,7 +56,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           </Disclosure>
         )}
         {write && pipe && (
-          <Disclosure label="+ Oportunidade" primary>
+          <Disclosure label="+ Oportunidade" primary open={sp.nova === "1"}>
             <form action={createDeal} className="flex flex-col gap-3">
               <input type="hidden" name="pipeline_id" value={pipe.id} />
               <input type="hidden" name="open" value="1" />

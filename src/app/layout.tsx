@@ -8,8 +8,10 @@ export const metadata: Metadata = {
   title: "Plataforma 360",
   description: "Objetivos, finanças pessoais e do negócio, e CRM — tudo ligado.",
   manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "360", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
 };
-export const viewport: Viewport = { themeColor: "#F5F5F7" };
+export const viewport: Viewport = { themeColor: "#F5F5F7", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

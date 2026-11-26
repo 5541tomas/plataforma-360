@@ -9,6 +9,7 @@ const TABS = [
   { href: "/crm/produtos", label: "Produtos" },
   { href: "/crm/automacoes", label: "Automações" },
   { href: "/crm/lead-magnets", label: "Lead magnets" },
+  { href: "/crm/agenda", label: "Agenda" },
   { href: "/crm/relatorios", label: "Relatórios" },
 ];
 

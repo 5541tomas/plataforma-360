@@ -25,6 +25,7 @@ export default async function ContactosPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Contactos">
         <form className="flex gap-2"><label className="sr-only" htmlFor="cq">Pesquisar</label>
           <input id="cq" name="q" defaultValue={q} placeholder="Pesquisar nome ou email…" className="input min-w-[240px]" /><button className="btn-ghost">Pesquisar</button></form>
+        {write && <Link href="/crm/contactos/importar" className="btn-ghost">Importar CSV</Link>}
         {write && (
           <Disclosure label="+ Contacto" primary>
             <form action={createContact} className="flex flex-col gap-3">

@@ -19,7 +19,7 @@ const first = (name?: string | null) => (name ?? "").trim().split(/\s+/)[0] || "
 export type WaTemplate = { label: string; text: string };
 
 /** Mensagens prontas para um negócio */
-export function dealTemplates(o: { contact?: string | null; title: string; me: string; hasProposal: boolean }): WaTemplate[] {
+export function dealTemplates(o: { contact?: string | null; title: string; me: string; hasProposal: boolean; proposalUrl?: string }): WaTemplate[] {
   const hi = o.contact ? `Olá ${first(o.contact)}` : "Olá";
   const sign = first(o.me);
   const t: WaTemplate[] = [
@@ -27,7 +27,7 @@ export function dealTemplates(o: { contact?: string | null; title: string; me: s
     { label: "Marcar reunião", text: `${hi}! Podemos marcar 30 minutos esta semana para avançarmos com ${o.title}? Diga-me que dia e hora lhe dá mais jeito. ${sign}` },
   ];
   if (o.hasProposal) {
-    t.unshift({ label: "Proposta enviada", text: `${hi}, acabei de lhe enviar por email a proposta para ${o.title}. Se fizer sentido, podemos falar 15 minutos para rever em conjunto. ${sign}` });
+    t.unshift({ label: "Proposta enviada", text: o.proposalUrl ? `${hi}, aqui está a proposta para ${o.title}: ${o.proposalUrl} — pode aceitá-la diretamente no link. Se fizer sentido, falamos 15 minutos para a rever em conjunto. ${sign}` : `${hi}, acabei de lhe enviar por email a proposta para ${o.title}. Se fizer sentido, podemos falar 15 minutos para rever em conjunto. ${sign}` });
     t.push({ label: "Lembrete de proposta", text: `${hi}, só para relembrar a proposta de ${o.title}. Alguma questão que eu possa ajudar a esclarecer? ${sign}` });
   }
   t.push({ label: "Fim de programa · continuidade", text: `${hi}! Estamos a chegar ao fim de ${o.title} e gostava de marcar 20 minutos para fazermos o balanço e vermos como dar continuidade aos resultados. Que dia lhe dá jeito? ${sign}` });

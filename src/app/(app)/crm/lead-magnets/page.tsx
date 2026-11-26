@@ -5,6 +5,7 @@ import { requireModule, canWrite } from "@/lib/context";
 import { dateShort, eur } from "@/lib/format";
 import { Empty, PageHeader } from "@/components/ui";
 import { CopyLink } from "@/components/CopyLink";
+import { qrSvg } from "@/lib/qr";
 import type { Offer } from "@/lib/magnets";
 import { saveMagnet, seedMagnets, setMeetingUrl, setPublicSlug } from "./actions";
 
@@ -48,6 +49,8 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
     return { leads: rs.length, meetings, wonN: new Set(won.map((d) => d.contact_id)).size, wonV: won.reduce((a, d) => a + Number(d.value), 0),
       avg: totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : null, weak: Object.entries(weak).sort((a, b) => b[1] - a[1]), rs };
   };
+  const qrs = new Map<string, string>();
+  if (slug) for (const m of (mags ?? []) as Mag[]) qrs.set(m.id, await qrSvg(`${base}/d/${slug}/${m.slug}`));
   const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
 
   return (
@@ -68,7 +71,7 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
           <form action={setMeetingUrl} className="flex flex-col gap-2">
             <span className="label">Link para marcar a reunião 1:1 (Google Calendar, Calendly…)</span>
             <div className="flex gap-2"><input name="meeting_url" type="url" defaultValue={meetingUrl} placeholder="https://calendar.app.google/…" className="input" /><button className="btn-ghost">Guardar</button></div>
-            <span className="text-xs text-muted">{meetingUrl ? "Usado nos botões e emails." : "Sem link, o botão abre o teu WhatsApp (telemóvel nas Definições) ou o teu email."}</span>
+            <span className="text-xs text-muted">{meetingUrl ? "Usado nos botões e emails." : "Deixa vazio para usares a tua Agenda de marcações (CRM → Agenda). Sem agenda ativa, o botão abre o teu WhatsApp ou email."}</span>
           </form>
         </section>
       )}
@@ -82,7 +85,14 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
               <div className="flex flex-col gap-1"><span className="text-xs font-semibold uppercase tracking-[0.6px] text-muted">{m.kind === "quiz" ? "Diagnóstico interativo" : "Ebook"}</span><h2 className="h2">{m.title}</h2></div>
               <span className={`chip ${m.active ? "bg-good-soft text-[#1E6B30]" : "bg-[#F2F2F5] text-muted"}`}>{m.active ? "Publicado" : "Pausado"}</span>
             </div>
-            {slug && <CopyLink url={url} />}
+            {slug && (
+              <div className="flex flex-wrap items-center gap-4">
+                <CopyLink url={url} />
+                {qrs.get(m.id) && <details className="text-sm"><summary className="cursor-pointer font-medium text-muted">QR code</summary>
+                  <div className="mt-2 flex items-end gap-3"><div className="h-36 w-36" dangerouslySetInnerHTML={{ __html: qrs.get(m.id)! }} />
+                    <a download={`qr-${m.slug}.svg`} href={`data:image/svg+xml;utf8,${encodeURIComponent(qrs.get(m.id)!)}`} className="text-sm font-medium text-accent-ink">Descarregar</a></div></details>}
+              </div>
+            )}
             <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(110px,1fr))]">
               {[["Visitas", String(m.views), ""], ["Leads", String(s.leads), pct(s.leads, m.views)], ["Reuniões", String(s.meetings), pct(s.meetings, s.leads)], ["Clientes", String(s.wonN), pct(s.wonN, s.meetings)], ["Faturado", eur(s.wonV), ""]].map(([l, v, p]) => (
                 <div key={l} className="rounded-2xl bg-[#F7F7F9] px-3 py-2.5"><div className="text-xs text-muted">{l}</div><div className="text-[20px] font-semibold tabular-nums">{v}</div>{p && <div className="text-[11px] text-muted">conversão {p}</div>}</div>

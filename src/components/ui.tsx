@@ -34,9 +34,9 @@ export function Empty({ children }: { children: React.ReactNode }) {
 }
 
 /** Formulário "abrir/fechar" sem JavaScript, via <details> */
-export function Disclosure({ label, children, primary = false }: { label: string; children: React.ReactNode; primary?: boolean }) {
+export function Disclosure({ label, children, primary = false, open = false }: { label: string; children: React.ReactNode; primary?: boolean; open?: boolean }) {
   return (
-    <details className="group relative">
+    <details className="group relative" open={open || undefined}>
       <summary className={`${primary ? "btn" : "btn-ghost"} list-none cursor-pointer [&::-webkit-details-marker]:hidden`}>{label}</summary>
       <div className="absolute right-0 z-20 mt-2 w-[min(92vw,380px)] card !p-5 shadow-xl border border-line">{children}</div>
     </details>
