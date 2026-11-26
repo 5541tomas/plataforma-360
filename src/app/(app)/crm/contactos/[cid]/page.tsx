@@ -7,6 +7,7 @@ import { Empty, PageHeader } from "@/components/ui";
 import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 import { dealTemplates } from "@/lib/whatsapp";
 import { addContactNote, addTestimonial, createDeal, saveContact } from "../../actions";
+import { enrollContact, setConsent, stopEnrollment } from "../../automacoes/actions";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -24,6 +25,12 @@ export default async function ContactPage({ params }: { params: Promise<{ cid: s
     supabase.from("products").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("position"),
   ]);
   const dealIds = (deals ?? []).map((d) => d.id);
+  const [{ data: seqs }, { data: enrolls }] = await Promise.all([
+    supabase.from("sequences").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("created_at"),
+    supabase.from("enrollments").select("id, sequence_id, status, next_step, next_run_at").eq("contact_id", cid).eq("status", "active"),
+  ]);
+  const seqName = new Map((seqs ?? []).map((q) => [q.id, q.name]));
+  const score = (c.score as number | null) ?? 0;
   const { data: acts } = await supabase.from("activities").select("id, type, summary, occurred_at, deal_id")
     .or(dealIds.length ? `contact_id.eq.${cid},deal_id.in.(${dealIds.join(",")})` : `contact_id.eq.${cid}`)
     .order("occurred_at", { ascending: false }).limit(100);
@@ -37,6 +44,35 @@ export default async function ContactPage({ params }: { params: Promise<{ cid: s
         {c.email && <a href={`mailto:${c.email}`} className="btn-ghost">Email</a>}
         <WhatsAppMenu phone={c.phone} templates={templates} />
       </PageHeader>
+
+      <section className="card flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="h2">Nutrição automática</h2>
+          <span className={`chip ${score >= 60 ? "bg-warn-soft text-warn" : score >= 30 ? "bg-accent-soft text-accent-ink" : "bg-[#F2F2F5] text-muted"}`} title="Pontuação de interesse (0–100): atividade recente, aberturas, cliques, valor e etapa">{score >= 60 ? "🔥 Quente" : score >= 30 ? "Morno" : "Frio"} · {score}</span>
+        </div>
+        {c.unsubscribed_at ? <p className="text-sm text-warn">Cancelou as comunicações em {dateShort(c.unsubscribed_at)} — não recebe sequências por email nem newsletter.</p>
+          : write && (
+          <form action={setConsent} className="flex items-center gap-2 text-sm">
+            <input type="hidden" name="id" value={cid} />
+            <label className="flex items-center gap-2"><input type="checkbox" name="consent" defaultChecked={!!c.consent_marketing} className="h-4 w-4" /> Aceitou receber newsletter{c.consent_at ? ` (desde ${dateShort(c.consent_at)})` : ""}</label>
+            <button className="text-sm font-medium text-accent-ink">Guardar</button>
+          </form>)}
+        {(enrolls ?? []).map((e) => (
+          <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#F7F7F9] px-3 py-2 text-sm">
+            <span><strong className="font-semibold">{seqName.get(e.sequence_id) ?? "Sequência"}</strong> · próximo: passo {e.next_step} em {dateShort(e.next_run_at)}</span>
+            {write && <form action={stopEnrollment}><input type="hidden" name="id" value={e.id} /><button className="text-xs text-muted hover:text-warn">Parar</button></form>}
+          </div>
+        ))}
+        {write && (seqs?.length ?? 0) > 0 && (
+          <form action={enrollContact} className="flex flex-wrap gap-2">
+            <input type="hidden" name="contact_id" value={cid} />
+            <select name="sequence_id" aria-label="Sequência" className="input !w-auto !min-h-10">{seqs!.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}</select>
+            {(deals?.length ?? 0) > 0 && <select name="deal_id" aria-label="Negócio" className="input !w-auto !min-h-10"><option value="">Sem negócio</option>{deals!.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}</select>}
+            <button className="btn-ghost !min-h-10">Inscrever em sequência</button>
+          </form>
+        )}
+        {(seqs?.length ?? 0) === 0 && <p className="text-sm text-muted">Ainda não tens sequências. <Link href="/crm/automacoes?tab=sequencias" className="text-accent-ink">Criar</Link></p>}
+      </section>
 
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">
         <div className="card flex flex-col gap-4">

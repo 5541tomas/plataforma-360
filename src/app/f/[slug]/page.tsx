@@ -49,6 +49,7 @@ export default async function PublicForm({ params, searchParams }: { params: Pro
             )}
             <label className="flex flex-col gap-1.5"><span className="label">Como posso ajudar?</span><textarea name="message" rows={4} className="input py-2.5" /></label>
             {sp.erro && <p role="alert" className="text-sm text-warn">{sp.erro}</p>}
+            <label className="flex items-start gap-2 text-sm text-ink-2"><input type="checkbox" name="consent" className="mt-0.5 h-4 w-4" /> Aceito receber dicas e novidades por email. Posso cancelar a qualquer momento.</label>
             <button className="btn">Enviar</button>
             <p className="text-center text-xs text-muted">Os teus dados são usados apenas para responder a este pedido.</p>
           </form>

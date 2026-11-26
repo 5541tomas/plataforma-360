@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getContext, canRead } from "@/lib/context";
+import { getContext, canRead, canWrite } from "@/lib/context";
 import { dateLong, eur, today, dateShort } from "@/lib/format";
 import { Empty } from "@/components/ui";
 import { TaskCheck, TaskItem } from "@/components/TaskItem";
@@ -25,6 +25,12 @@ export default async function HojePage() {
   const sixAgo = new Date(); sixAgo.setMonth(sixAgo.getMonth() - 5, 1);
   const none = Promise.resolve({ data: null });
   if (fin) await supabase.rpc("sync_receivables", { p_org: ctx.org.id });
+  const crmWrite = crm && canWrite(ctx, "crm");
+  if (crmWrite) await supabase.rpc("run_automations", { p_org: ctx.org.id });
+  const [queueQ, hotQ] = crm ? await Promise.all([
+    supabase.from("outbox").select("id", { count: "exact", head: true }).eq("org_id", ctx.org.id).eq("status", "pending").is("campaign_id", null),
+    supabase.from("contacts").select("id, name, score").eq("org_id", ctx.org.id).gte("score", 60).is("unsubscribed_at", null).order("score", { ascending: false }).limit(2),
+  ]) : [{ count: 0 }, { data: [] }];
 
   const [bal, rec, cooling, ending, tasks, tx, rcv, debts, me] = await Promise.all([
     fin ? supabase.from("v_account_balances").select("scope, type, balance").eq("org_id", ctx.org.id) : none,
@@ -60,6 +66,8 @@ export default async function HojePage() {
   // As 3 prioridades: atrasado primeiro, depois dinheiro por receber, negócios a arrefecer, tarefas de hoje, programas a terminar
   const prios: Prio[] = [];
   open.filter((x) => x.due_date && x.due_date < t).forEach((x) => prios.push({ key: x.id, kind: "task", title: x.title, meta: `Atrasada desde ${dateShort(x.due_date!)}`, task: x, tone: "warn" }));
+  if (crmWrite && (queueQ.count ?? 0) > 0) prios.push({ key: "queue", kind: "deal", title: `Aprovar ${queueQ.count} mensagem(ns) automática(s)`, meta: "Sequências de nutrição · nada sai sem ti", href: "/crm/automacoes", tone: "warn" });
+  ((hotQ.data ?? []) as { id: string; name: string; score: number }[]).forEach((c) => prios.push({ key: "hot" + c.id, kind: "deal", title: `Lead quente: ${c.name}`, meta: `Pontuação ${c.score} · liga hoje`, href: `/crm/contactos/${c.id}`, tone: "accent" }));
   overdueRcv.slice(0, 2).forEach((r) => prios.push({ key: r.id, kind: "money", title: `Cobrar: ${r.description}`, meta: `${eur(r.amount)} · venceu a ${dateShort(r.due_date)}`, href: "/financas/cobrancas", tone: "warn" }));
   ((cooling.data ?? []) as { id: string; title: string; company_name: string | null; total_value: number; last_activity_at: string }[]).slice(0, 2).forEach((d) =>
     prios.push({ key: d.id, kind: "deal", title: `Retomar contacto: ${d.company_name ?? d.title}`, meta: `${eur(d.total_value)} · parado desde ${dateShort(d.last_activity_at)}`, href: `/crm/${d.id}`, tone: "accent" }));

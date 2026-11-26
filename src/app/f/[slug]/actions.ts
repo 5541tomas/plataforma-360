@@ -10,6 +10,8 @@ export async function submitLead(formData: FormData) {
     p_message: String(formData.get("message") ?? ""), p_interest: String(formData.get("interest") ?? ""), p_source: String(formData.get("source") ?? ""),
     p_honeypot: String(formData.get("website") ?? ""),
   });
+  const email = String(formData.get("email") ?? "").trim();
+  if (!error && email && formData.get("consent") === "on") await supabase.rpc("public_lead_consent", { p_slug: slug, p_email: email, p_consent: true });
   if (error) redirect(`/f/${slug}?erro=${encodeURIComponent(error.message)}`);
   redirect(`/f/${slug}?ok=1`);
 }

@@ -12,6 +12,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const ctx = await requireModule("crm");
   const write = canWrite(ctx, "crm");
   const supabase = await createClient();
+  if (write) await supabase.rpc("run_automations", { p_org: ctx.org.id });
   const [{ data: pipelines }, { data: products }, { data: contactNames }] = await Promise.all([
     supabase.from("pipelines").select("id, name").eq("org_id", ctx.org.id).order("position"),
     supabase.from("products").select("id, name, price, kind").eq("org_id", ctx.org.id).eq("active", true).order("position"),

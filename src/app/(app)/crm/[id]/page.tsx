@@ -10,6 +10,7 @@ import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 import { Copilot } from "@/components/Copilot";
 import { aiConfigured } from "@/lib/ai";
 import { dealTemplates } from "@/lib/whatsapp";
+import { enrollContact } from "../automacoes/actions";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -27,6 +28,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     deal.contact_id ? supabase.from("contacts").select("*").eq("id", deal.contact_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("tasks").select("id, title, due_date, done").eq("deal_id", id).eq("done", false).order("due_date"),
   ]);
+  const { data: seqs } = await supabase.from("sequences").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("created_at");
 
   return (
     <>
@@ -41,6 +43,13 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
               {(stages ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <button className="btn">Mover</button>
+          </form>
+        )}
+        {write && deal.contact_id && (seqs?.length ?? 0) > 0 && (
+          <form action={enrollContact} className="flex gap-2">
+            <input type="hidden" name="contact_id" value={deal.contact_id} /><input type="hidden" name="deal_id" value={deal.id} />
+            <select name="sequence_id" aria-label="Sequência" className="input !w-auto">{seqs!.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}</select>
+            <button className="btn-ghost">Nutrir</button>
           </form>
         )}
       </PageHeader>
