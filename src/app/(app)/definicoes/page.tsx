@@ -116,7 +116,7 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
 
       <section className="card flex flex-col gap-3">
         <h2 className="h2">Gmail e Google Calendar</h2>
-        <p className="text-sm text-muted">Os emails e reuniões com contactos do CRM (com email preenchido) entram automaticamente no histórico de cada negócio. Só leitura: a plataforma nunca envia nem apaga nada.</p>
+        <p className="text-sm text-muted">Os emails e reuniões com contactos do CRM (com email preenchido) entram automaticamente no histórico de cada negócio. A plataforma nunca envia nem apaga emails. No calendário, só cria (e apaga, se o cliente cancelar) as reuniões marcadas na tua agenda online.</p>
         {!googleConfigured() ? <p className="text-sm text-warn">A integração ainda não está configurada no servidor (faltam GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET).</p>
           : google ? (
             <div className="flex flex-wrap items-center gap-3">
