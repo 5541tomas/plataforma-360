@@ -28,11 +28,11 @@ const items: { href: string; label: string; icon: keyof typeof icons; module?: M
 const more = { href: "/mais", label: "Mais" };
 const tabs = ["/", "/meta", "/crm", "/financas"];
 
-export function Sidebar({ orgName, userName, perms }: { orgName: string; userName: string; perms: Record<Module, Access> }) {
+export function Sidebar({ orgName, userName, perms, ai = true }: { orgName: string; userName: string; perms: Record<Module, Access>; ai?: boolean }) {
   const path = usePathname();
   const [sheet, setSheet] = useState(false);
   useEffect(() => setSheet(false), [path]);
-  const visible = items.filter((i) => !i.module || perms[i.module] !== "none");
+  const visible = items.filter((i) => (!i.module || perms[i.module] !== "none") && (ai || i.href !== "/assistente"));
   const isActive = (h: string) => (h === "/" ? path === "/" : path.startsWith(h));
   const search = () => window.dispatchEvent(new Event("open-palette"));
   const Icon = ({ k, size = 18 }: { k: keyof typeof icons; size?: number }) => <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">{icons[k]}</svg>;

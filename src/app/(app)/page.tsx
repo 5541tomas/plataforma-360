@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getContext, canRead, canWrite } from "@/lib/context";
 import { SetupChecklist } from "@/components/SetupChecklist";
+import { aiConfigured } from "@/lib/ai";
 import { dateLong, eur, today, dateShort } from "@/lib/format";
 import { Empty } from "@/components/ui";
 import { TaskCheck, TaskItem } from "@/components/TaskItem";
@@ -232,7 +233,7 @@ export default async function HojePage() {
             <div className="-mt-2 flex gap-3">{months.map((m) => <div key={m.key} className="flex-1 text-center text-[11px] text-muted">{m.label}</div>)}</div>
           </div>
         )}
-        <form action="/assistente" className="card flex flex-col gap-3">
+        {aiConfigured() && <form action="/assistente" className="card flex flex-col gap-3">
           <h2 className="text-[17px] font-semibold">Pergunta ao assistente</h2>
           <label htmlFor="aq" className="sr-only">Pergunta</label>
           <input id="aq" name="q" required placeholder="Ex.: Quanto posso pagar-me este mês?" className="input" />
@@ -240,7 +241,7 @@ export default async function HojePage() {
             {["Que negócios devo atacar esta semana?", "Onde estou a gastar demasiado?"].map((q) => <Link key={q} href={`/assistente?q=${encodeURIComponent(q)}`} className="rounded-full border border-line px-3 py-1.5 text-xs hover:bg-soft">{q}</Link>)}
           </div>
           <button className="btn self-start">Perguntar</button>
-        </form>
+        </form>}
       </section>
     </>
   );

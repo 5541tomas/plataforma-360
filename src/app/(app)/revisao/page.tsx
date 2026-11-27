@@ -61,7 +61,7 @@ export default async function RevisaoPage({ searchParams }: { searchParams: Prom
           </>) : aiConfigured() ? (<>
             <p className="text-sm text-muted">O coach lê os números da semana, a tua reflexão e o ritmo da meta, e devolve o balanço com 3 prioridades.</p>
             <CoachButton offset={offset} label="Fazer a revisão com o coach" />
-          </>) : <p className="text-sm text-muted">A análise com IA fica disponível quando a chave da API da Anthropic estiver configurada. Os números ao lado já funcionam.</p>}
+          </>) : <p className="text-sm text-muted">Revê os números da semana ao lado e escreve a tua reflexão: o que correu bem, o que aprendeste e as 3 prioridades da próxima semana.</p>}
         </div>
 
         <div className="flex flex-col gap-4">

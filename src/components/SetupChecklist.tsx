@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { canWrite, type AppContext as Ctx } from "@/lib/context";
 import { emailConfigured } from "@/lib/email";
-import { aiConfigured } from "@/lib/ai";
 import { dismissSetup } from "@/app/(app)/setup-actions";
 
 /** "Primeiros passos": o que falta configurar para tirar o máximo da plataforma. */
@@ -32,7 +31,6 @@ export async function SetupChecklist({ ctx }: { ctx: Ctx }) {
       { done: !!(org?.booking as { enabled?: boolean })?.enabled, label: "Ativar a agenda de marcações 1:1", href: "/crm/agenda" },
     ] : []),
     { done: emailConfigured(), label: "Ligar o envio de email (Resend) — pede-me para te guiar", href: "/crm/automacoes" },
-    { done: aiConfigured(), label: "Ligar a IA (chave da Anthropic no Netlify)", href: "/assistente" },
   ];
   const done = steps.filter((s) => s.done).length;
   if (done === steps.length) return null;

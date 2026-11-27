@@ -13,7 +13,7 @@ const PAGES: Item[] = [
   { group: "Ir para", label: "Assistente IA", href: "/assistente" }, { group: "Ir para", label: "Definições", href: "/definicoes" },
 ];
 
-export function CommandPalette() {
+export function CommandPalette({ ai = true }: { ai?: boolean }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
@@ -40,7 +40,7 @@ export function CommandPalette() {
   const close = useCallback(() => setOpen(false), []);
   const items: Item[] = useMemo(() => {
     const t = q.trim().toLowerCase();
-    const pages = PAGES.filter((p) => !t || p.label.toLowerCase().includes(t)).slice(0, t ? 4 : 8);
+    const pages = PAGES.filter((p) => (ai || p.href !== "/assistente") && (!t || p.label.toLowerCase().includes(t))).slice(0, t ? 4 : 8);
     const actions: Item[] = t.length >= 2 ? [{ group: "Ações", label: `Criar tarefa para hoje: “${q.trim()}”`, href: "", run: async () => { const e = await quickTask(q.trim()); setMsg(e ?? "Tarefa criada ✓"); if (!e) { router.refresh(); setTimeout(close, 700); } } }] : [
       { group: "Ações", label: "Nova oportunidade", href: "/crm?nova=1" }, { group: "Ações", label: "Registar movimento", href: "/financas?novo=1" },
     ];

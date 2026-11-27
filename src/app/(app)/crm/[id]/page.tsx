@@ -123,7 +123,7 @@ export default async function DealPage({ params, searchParams }: { params: Promi
         </div>
 
         <div className="flex flex-col gap-4">
-          {write && <Copilot dealId={deal.id} currentStage={deal.stage_name} phone={deal.contact_phone} enabled={aiConfigured()} />}
+          {write && aiConfigured() && <Copilot dealId={deal.id} currentStage={deal.stage_name} phone={deal.contact_phone} enabled={aiConfigured()} />}
           <div className="card flex flex-col gap-3">
             <h2 className="h2">Contacto</h2>
             {contact ? (
