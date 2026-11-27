@@ -10,7 +10,7 @@ import { GuideUpload } from "@/components/GuideUpload";
 import type { Offer } from "@/lib/magnets";
 import { saveMagnet, seedBrandMagnets, setMeetingUrl, setPublicSlug } from "./actions";
 
-type Mag = { id: string; slug: string; kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: { content?: string; areas?: { key: string; name: string }[] }; offer: Offer & { whatsapp?: string; keyword?: string; guide_url?: string; whatsapp_body?: string }; sequence_id: string | null; active: boolean; views: number };
+type Mag = { id: string; slug: string; kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: { content?: string; areas?: { key: string; name: string }[] }; custom_domain: string | null; offer: Offer & { whatsapp?: string; keyword?: string; guide_url?: string; whatsapp_body?: string }; sequence_id: string | null; active: boolean; views: number };
 type Resp = { id: string; magnet_id: string; contact_id: string | null; deal_id: string | null; total: number | null; weakest: string | null; created_at: string };
 
 export default async function LeadMagnetsPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
@@ -88,7 +88,7 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
 
       {(mags ?? []).length === 0 ? <Empty>{slug ? "Carrega em “Criar os dois” para teres o teu guia «Os 7 Erros» e o teste «Quantos pecados cometes?» prontos, com a sequência de WhatsApp." : "Começa por definir o teu endereço público."}</Empty> : ((mags ?? []) as Mag[]).map((m) => {
         const s = stats(m);
-        const url = `${base}/d/${slug}/${m.slug}`;
+        const url = m.custom_domain ? `https://${m.custom_domain}` : `${base}/d/${slug}/${m.slug}`;
         return (
           <article key={m.id} className="card flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -126,6 +126,8 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
               <details><summary className="cursor-pointer text-sm font-medium text-muted">Editar textos, email e sequência</summary>
                 <form action={saveMagnet} className="mt-3 flex flex-col gap-3">
                   <input type="hidden" name="id" value={m.id} /><input type="hidden" name="meeting_url" value={m.offer.meeting_url ?? ""} />
+                  <label className="flex flex-col gap-1.5"><span className="label">Domínio próprio (opcional)</span><input name="custom_domain" defaultValue={m.custom_domain ?? ""} placeholder="7erros.thomasfaria.pt" className="input" />
+                    <span className="text-xs text-muted">Depois adiciona o domínio no Netlify (site da plataforma → Domain management → Add domain alias) e aponta o DNS (CNAME) para plataforma-360-0sri.netlify.app.</span></label>
                   <label className="flex flex-col gap-1.5"><span className="label">Título</span><input name="title" defaultValue={m.title} className="input" /></label>
                   <label className="flex flex-col gap-1.5"><span className="label">Subtítulo</span><textarea name="subtitle" rows={2} defaultValue={m.subtitle ?? ""} className="input py-2.5" /></label>
                   <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">

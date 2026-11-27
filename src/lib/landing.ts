@@ -106,6 +106,8 @@ export const SINS_QUIZ: QuizConfig & { landing: Landing; result_mode: "sins" } =
 export const GUIDE_OFFER: Offer & { whatsapp: string; keyword: string; guide_url: string; whatsapp_body: string } = {
   whatsapp: "351930528669", keyword: "GUIA", guide_url: "",
   meeting_label: "MARCAR CONVERSA DE DIAGNÓSTICO",
+  email_subject: "O teu guia: Os 7 Erros do Freelancer",
+  email_body: "Olá {{primeiro_nome}},\n\nAqui está o teu guia «Os 7 Erros do Freelancer»:\n{{link_guia}}\n\nLê-o ao café e começa pelo autodiagnóstico — em 5 minutos sabes quantos pecados estás a cometer.\n\nSe quiseres ir mais rápido, marcamos 30 minutos de conversa de diagnóstico, sem custos:\n{{link_reuniao}}\n\nUm abraço,\n{{meu_nome}}",
   whatsapp_body: "Olá {{primeiro_nome}}! Aqui está o teu guia «Os 7 Erros do Freelancer» 👇 {{link_guia}}\n\nLê ao café e começa pelo autodiagnóstico — depois diz-me quantos pecados apanhaste 😉\n\n{{meu_nome}}",
 };
 export const QUIZ_SINS_OFFER: Offer & { whatsapp: string; keyword: string; whatsapp_body: string } = {

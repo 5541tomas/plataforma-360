@@ -57,11 +57,17 @@ export async function saveMagnet(formData: FormData) {
       whatsapp: String(formData.get("whatsapp") ?? "").replace(/\D/g, ""), keyword: String(formData.get("keyword") ?? "").trim().toUpperCase().slice(0, 20),
       guide_url: /^https?:\/\//.test(String(formData.get("guide_url") ?? "").trim()) ? String(formData.get("guide_url")).trim() : "", whatsapp_body: String(formData.get("whatsapp_body") ?? "") },
   };
+  if (formData.has("custom_domain")) {
+    const d = String(formData.get("custom_domain") ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (d && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)) redirect(`${P}?erro=${encodeURIComponent("Domínio inválido. Escreve só o endereço, por exemplo 7erros.thomasfaria.pt")}`);
+    patch.custom_domain = d || null;
+  }
   if (formData.has("config_json")) {
     try { patch.config = JSON.parse(String(formData.get("config_json"))); } catch { redirect(`${P}?erro=${encodeURIComponent("Os textos da página têm um erro de formatação (JSON). Nada foi alterado nesse campo.")}`); }
   }
   if (m.kind === "ebook" && formData.has("content")) patch.config = { ...(m.config as object), content: String(formData.get("content")) };
-  await supabase.from("lead_magnets").update(patch).eq("id", id);
+  const { error } = await supabase.from("lead_magnets").update(patch).eq("id", id);
+  if (error) redirect(`${P}?erro=${encodeURIComponent(error.message.includes("custom_domain") ? "Esse domínio já está a ser usado noutro lead magnet." : error.message)}`);
   revalidatePath(P);
 }
 
@@ -83,7 +89,8 @@ export async function seedBrandMagnets(formData: FormData) {
   const { data: have } = await supabase.from("lead_magnets").select("slug").eq("org_id", ctx.org.id);
   const slugs = new Set((have ?? []).map((m) => m.slug));
   const rows = [];
-  if (which !== "quiz" && !slugs.has("7-erros")) rows.push({ org_id: ctx.org.id, slug: "7-erros", kind: "guide", title: "Os 7 Erros do Freelancer", subtitle: GUIDE_7_ERROS.hero.lead.replace(/\*/g, ""), config: GUIDE_7_ERROS, offer: GUIDE_OFFER, sequence_id: seqId });
+  const { count: domainTaken } = await supabase.from("lead_magnets").select("id", { count: "exact", head: true }).eq("custom_domain", "7erros.thomasfaria.pt");
+  if (which !== "quiz" && !slugs.has("7-erros")) rows.push({ custom_domain: domainTaken || ctx.email?.endsWith("@example.com") ? null : "7erros.thomasfaria.pt", org_id: ctx.org.id, slug: "7-erros", kind: "guide", title: "Os 7 Erros do Freelancer", subtitle: GUIDE_7_ERROS.hero.lead.replace(/\*/g, ""), config: GUIDE_7_ERROS, offer: GUIDE_OFFER, sequence_id: seqId });
   if (which !== "guide" && !slugs.has("7-pecados")) rows.push({ org_id: ctx.org.id, slug: "7-pecados", kind: "quiz", title: "Quantos pecados cometes?", subtitle: SINS_QUIZ.intro, config: SINS_QUIZ, offer: QUIZ_SINS_OFFER, sequence_id: seqId });
   if (rows.length) { const { error } = await supabase.from("lead_magnets").insert(rows); if (error) throw new Error(error.message); }
   revalidatePath(P);

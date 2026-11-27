@@ -249,7 +249,7 @@ function Privacy({ p }: { p: NonNullable<Landing["privacy"]> }) {
       <h3>Quem trata os teus dados</h3>
       <p>O responsável pelo tratamento é {p.controller}. Para qualquer questão sobre os teus dados: <a href={`mailto:${p.email}`}>{p.email}</a>.</p>
       <h3>Que dados recolhemos</h3>
-      <ul><li>O nome, a área de atividade, o número de WhatsApp e, se o indicares, o email que escreves no formulário.</li><li>As respostas ao teste, quando o fazes, e a pontuação calculada.</li><li>O conteúdo das mensagens que trocamos.</li></ul>
+      <ul><li>O nome, o email, o número de WhatsApp e a área de atividade que escreves no formulário.</li><li>As respostas ao teste, quando o fazes, e a pontuação calculada.</li><li>O conteúdo das mensagens que trocamos.</li></ul>
       <p>Estes dados ficam guardados na nossa ferramenta de gestão de clientes, alojada na União Europeia.</p>
       <h3>Para que os usamos</h3>
       <ul><li>Enviar-te o que pediste (o guia ou o resultado do teste).</li><li>Enviar-te, nos 10 dias seguintes, até 5 mensagens com conteúdos relacionados e o convite para uma conversa de diagnóstico.</li><li>Responder aos teus pedidos e marcar a conversa, se a pedires.</li></ul>
