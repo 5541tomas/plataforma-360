@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = ["/manifest.webmanifest", "/login", "/auth", "/api/mcp/", "/f/", "/api/t/", "/u/", "/d/", "/r/", "/e/", "/b/", "/m/", "/api/ics/", "/p/"]; // /api/mcp/ é protegido pelo token pessoal
+const PUBLIC = ["/manifest.webmanifest", "/login", "/auth", "/api/mcp/", "/f/", "/api/t/", "/u/", "/d/", "/r/", "/e/", "/b/", "/m/", "/api/ics/", "/p/", "/g/"]; // /api/mcp/ é protegido pelo token pessoal
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

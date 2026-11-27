@@ -39,7 +39,7 @@ export default async function ContactPage({ params }: { params: Promise<{ cid: s
 
   return (
     <>
-      <PageHeader eyebrow={[c.role, company?.name].filter(Boolean).join(" · ") || "Contacto"} title={c.name}>
+      <PageHeader eyebrow={[c.role, company?.name, c.area].filter(Boolean).join(" · ") || "Contacto"} title={c.name}>
         <Link href="/crm/contactos" className="btn-ghost">‹ Contactos</Link>
         {c.email && <a href={`mailto:${c.email}`} className="btn-ghost">Email</a>}
         <WhatsAppMenu phone={c.phone} templates={templates} />

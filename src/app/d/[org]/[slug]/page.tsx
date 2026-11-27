@@ -3,9 +3,13 @@ import { anonClient } from "@/lib/supabase/anon";
 import { QuizRunner } from "@/components/QuizRunner";
 import type { QuizConfig } from "@/lib/magnets";
 import { submitMagnet } from "./actions";
+import type { Landing } from "@/lib/landing";
+import { NoirAbout, NoirDeliverables, NoirFinal, NoirHero, NoirHonest, NoirList, NoirShell, NoirTicker } from "@/components/noir/Noir";
+import { GuideForm } from "@/components/noir/GuideForm";
+import { NoirQuiz } from "@/components/noir/NoirQuiz";
 
 export const dynamic = "force-dynamic";
-type M = { kind: "quiz" | "ebook"; title: string; subtitle: string | null; config: QuizConfig & { content?: string }; org: string; author: string };
+type M = { kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: QuizConfig & Partial<Landing> & { content?: string; landing?: Landing }; org: string; author: string };
 
 export async function generateMetadata({ params }: { params: Promise<{ org: string; slug: string }> }) {
   const { org, slug } = await params;
@@ -16,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ org: stri
   return { title: `${m.title} · ${m.author}`, description, openGraph: { title: m.title, description, type: "website", locale: "pt_PT" }, twitter: { card: "summary_large_image", title: m.title, description } };
 }
 
-export default async function MagnetPage({ params, searchParams }: { params: Promise<{ org: string; slug: string }>; searchParams: Promise<{ erro?: string; passo?: string; r?: string }> }) {
+export default async function MagnetPage({ params, searchParams }: { params: Promise<{ org: string; slug: string }>; searchParams: Promise<{ erro?: string; passo?: string; r?: string; origem?: string }> }) {
   const { org, slug } = await params;
   const sp = await searchParams;
   const { data } = await anonClient().rpc("public_magnet", { p_org: org, p_slug: slug });
@@ -24,6 +28,28 @@ export default async function MagnetPage({ params, searchParams }: { params: Pro
   if (!m) notFound();
   let initial: number[] | undefined;
   try { initial = sp.passo === "contacto" && sp.r ? (JSON.parse(sp.r) as number[]) : undefined; } catch { initial = undefined; }
+
+  // Estilo da marca (preto e dourado)
+  const land: Landing | undefined = m.kind === "guide" ? (m.config as unknown as Landing) : m.config.landing;
+  if (land?.theme === "noir") {
+    const areas = land.areas ?? [];
+    const consent = land.consent ?? "Aceito receber mensagens. Sem spam, e paro quando me pedires.";
+    const capture = m.kind === "guide"
+      ? <GuideForm org={org} slug={slug} areas={areas} consent={consent} cta={land.hero.cta ?? "MANDA-ME O GUIA"} note={land.hero.note} submit={submitMagnet} error={sp.erro} source={sp.origem} />
+      : <NoirQuiz cfg={m.config} org={org} slug={slug} areas={areas} consent={consent} cta={land.hero.cta ?? "FAZER O TESTE"} note={land.hero.note} submit={submitMagnet} error={sp.erro} initial={initial} />;
+    const anchor = m.kind === "guide" ? "#guia" : "#teste";
+    return (
+      <NoirShell l={land}>
+        <NoirHero h={land.hero}>{capture}</NoirHero>
+        {land.ticker && <NoirTicker items={land.ticker} />}
+        {land.honest && <NoirHonest h={land.honest} />}
+        {land.list && <div style={{ paddingTop: land.honest ? 0 : 120 }}><NoirList l={land.list} /></div>}
+        {land.deliverables && <NoirDeliverables d={land.deliverables} />}
+        {land.about && <NoirAbout a={land.about} />}
+        {land.final && <NoirFinal f={land.final} href={anchor} />}
+      </NoirShell>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-bg px-4 py-10">

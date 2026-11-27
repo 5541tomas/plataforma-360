@@ -28,7 +28,7 @@ export async function SetupChecklist({ ctx }: { ctx: Ctx }) {
       { done: contacts >= 5, label: "Importar os teus contactos (CSV)", href: "/crm/contactos/importar" },
       { done: !!org?.public_slug, label: "Escolher o teu endereço público", href: "/crm/lead-magnets" },
       { done: seqs > 0, label: "Criar as sequências e regras de nutrição", href: "/crm/automacoes" },
-      { done: mags > 0, label: "Publicar o diagnóstico de vendas + ebook", href: "/crm/lead-magnets" },
+      { done: mags > 0, label: "Publicar o guia «Os 7 Erros» e o teste dos 7 pecados", href: "/crm/lead-magnets" },
       { done: !!(org?.booking as { enabled?: boolean })?.enabled, label: "Ativar a agenda de marcações 1:1", href: "/crm/agenda" },
     ] : []),
     { done: emailConfigured(), label: "Ligar o envio de email (Resend) — pede-me para te guiar", href: "/crm/automacoes" },
