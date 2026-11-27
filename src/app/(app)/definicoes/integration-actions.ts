@@ -17,7 +17,7 @@ async function mergeSettings(key: string, value: Record<string, unknown>) {
 export async function savePayments(formData: FormData) {
   const pct = Math.min(100, Math.max(0, Math.round(Number(formData.get("deposit_pct") ?? 50))));
   const mbway = String(formData.get("mbway") ?? "").replace(/[^\d+ ]/g, "").trim().slice(0, 20);
-  await mergeSettings("payments", { deposit_pct: pct, mbway: mbway || null });
+  await mergeSettings("payments", { enabled: formData.get("pay_enabled") === "on", deposit_pct: pct, mbway: mbway || null });
 }
 
 export async function saveDigest(formData: FormData) {

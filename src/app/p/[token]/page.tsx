@@ -15,7 +15,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
   if (!/^[0-9a-f-]{36}$/.test(token)) notFound();
   const sp = await searchParams;
   const { data } = await anonClient().rpc("public_proposal", { p_token: token, p_count: sp.preview !== "1" });
-  const d = data as { p: Record<string, unknown> & { status: string; total: number; vat_rate: number; recurring: boolean; accent?: string; accepted_at?: string; accepted_name?: string; valid_until?: string }; org: Record<string, unknown>; deal: { contact_name?: string }; prepared_by: string; pay: { deposit_pct: number; mbway: string | null; iban: string | null; holder: string | null; paid_at: string | null; paid_amount: number | null; claimed_at: string | null } } | null;
+  const d = data as { p: Record<string, unknown> & { status: string; total: number; vat_rate: number; recurring: boolean; accent?: string; accepted_at?: string; accepted_name?: string; valid_until?: string }; org: Record<string, unknown>; deal: { contact_name?: string }; prepared_by: string; pay: { enabled: boolean; deposit_pct: number; mbway: string | null; iban: string | null; holder: string | null; paid_at: string | null; paid_amount: number | null; claimed_at: string | null } } | null;
   if (!d) notFound();
   const p = d.p, accent = (p.accent as string) || "#0071E3";
   const total = `${eur2(Number(p.total) * (1 + Number(p.vat_rate) / 100))}${p.recurring ? "/mês" : ""} (IVA incl.)`;
@@ -30,7 +30,7 @@ export default async function PublicProposal({ params, searchParams }: { params:
   );
   const gross = Number(p.total) * (1 + Number(p.vat_rate) / 100);
   const due = p.recurring ? gross : gross * Number(d.pay.deposit_pct) / 100;
-  const banner = p.status === "accepted" && (d.pay.iban || d.pay.mbway || stripeConfigured() || d.pay.paid_at) ? (
+  const banner = p.status === "accepted" && (d.pay.paid_at || (d.pay.enabled && (d.pay.iban || d.pay.mbway || stripeConfigured()))) ? (
     <PaymentPanel token={token} accent={accent} pay={{ amount: eur2(due), label: p.recurring ? "1.ª mensalidade" : Number(d.pay.deposit_pct) >= 100 ? "Pagamento" : `Sinal de ${d.pay.deposit_pct}%`, iban: d.pay.iban, holder: d.pay.holder, mbway: d.pay.mbway,
       ref: `Proposta ${String(p.number)}`, stripe: stripeConfigured(), paid: !!d.pay.paid_at, claimed: !!d.pay.claimed_at, status: sp.pagamento }} />
   ) : undefined;
