@@ -8,10 +8,12 @@ import { WhatsAppMenu } from "@/components/WhatsAppMenu";
 import { dealTemplates } from "@/lib/whatsapp";
 import { addContactNote, addTestimonial, createDeal, saveContact } from "../../actions";
 import { enrollContact, setConsent, stopEnrollment } from "../../automacoes/actions";
+import { NurtureNotice } from "@/components/NurtureNotice";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
-export default async function ContactPage({ params }: { params: Promise<{ cid: string }> }) {
+export default async function ContactPage({ params, searchParams }: { params: Promise<{ cid: string }>; searchParams: Promise<{ nutrir?: string }> }) {
+  const sp = await searchParams;
   const ctx = await requireModule("crm");
   const write = canWrite(ctx, "crm");
   const { cid } = await params;
@@ -44,6 +46,7 @@ export default async function ContactPage({ params }: { params: Promise<{ cid: s
         {c.email && <a href={`mailto:${c.email}`} className="btn-ghost">Email</a>}
         <WhatsAppMenu phone={c.phone} templates={templates} />
       </PageHeader>
+      <NurtureNotice code={sp.nutrir} />
 
       <section className="card flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -65,10 +68,10 @@ export default async function ContactPage({ params }: { params: Promise<{ cid: s
         ))}
         {write && (seqs?.length ?? 0) > 0 && (
           <form action={enrollContact} className="flex flex-wrap gap-2">
-            <input type="hidden" name="contact_id" value={cid} />
+            <input type="hidden" name="contact_id" value={cid} /><input type="hidden" name="back" value={`/crm/contactos/${cid}`} />
             <select name="sequence_id" aria-label="Sequência" className="input !w-auto !min-h-10">{seqs!.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}</select>
             {(deals?.length ?? 0) > 0 && <select name="deal_id" aria-label="Negócio" className="input !w-auto !min-h-10"><option value="">Sem negócio</option>{deals!.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}</select>}
-            <button className="btn-ghost !min-h-10">Inscrever em sequência</button>
+            <button className="btn-ghost !min-h-10">Iniciar nutrição</button>
           </form>
         )}
         {(seqs?.length ?? 0) === 0 && <p className="text-sm text-muted">Ainda não tens sequências. <Link href="/crm/automacoes?tab=sequencias" className="text-accent-ink">Criar</Link></p>}

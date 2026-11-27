@@ -12,11 +12,13 @@ import { CopyLink } from "@/components/CopyLink";
 import { headers } from "next/headers";
 import { aiConfigured } from "@/lib/ai";
 import { dealTemplates } from "@/lib/whatsapp";
-import { enrollContact } from "../automacoes/actions";
+import { enrollContact, stopEnrollment } from "../automacoes/actions";
+import { NurtureNotice } from "@/components/NurtureNotice";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
-export default async function DealPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DealPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ nutrir?: string }> }) {
+  const sp = await searchParams;
   const ctx = await requireModule("crm");
   const write = canWrite(ctx, "crm");
   const { id } = await params;
@@ -30,7 +32,10 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     deal.contact_id ? supabase.from("contacts").select("*").eq("id", deal.contact_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("tasks").select("id, title, due_date, done").eq("deal_id", id).eq("done", false).order("due_date"),
   ]);
-  const { data: seqs } = await supabase.from("sequences").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("created_at");
+  const [{ data: seqs }, { data: enrolls }] = await Promise.all([
+    supabase.from("sequences").select("id, name").eq("org_id", ctx.org.id).eq("active", true).order("created_at"),
+    supabase.from("enrollments").select("id, sequence_id, next_step, next_run_at, sequences(name)").eq("deal_id", id).eq("status", "active"),
+  ]);
 
   const hh = await headers();
   const base = process.env.NEXT_PUBLIC_SITE_URL || `${hh.get("x-forwarded-proto") ?? "https"}://${hh.get("host")}`;
@@ -55,12 +60,23 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
         )}
         {write && deal.contact_id && (seqs?.length ?? 0) > 0 && (
           <form action={enrollContact} className="flex gap-2">
-            <input type="hidden" name="contact_id" value={deal.contact_id} /><input type="hidden" name="deal_id" value={deal.id} />
+            <input type="hidden" name="contact_id" value={deal.contact_id} /><input type="hidden" name="deal_id" value={deal.id} /><input type="hidden" name="back" value={`/crm/${deal.id}`} />
             <select name="sequence_id" aria-label="Sequência" className="input !w-auto">{seqs!.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}</select>
-            <button className="btn-ghost">Nutrir</button>
+            <button className="btn-ghost" title="Inscreve o contacto na sequência e prepara já a 1.ª mensagem para aprovares">Iniciar nutrição</button>
           </form>
         )}
       </PageHeader>
+      <NurtureNotice code={sp.nutrir} />
+      {(enrolls?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {enrolls!.map((e) => (
+            <span key={e.id} className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-xs text-accent-ink">
+              Em nutrição: <strong>{(e.sequences as unknown as { name: string } | null)?.name}</strong> · passo {e.next_step} a {dateShort(e.next_run_at)}
+              {write && <form action={stopEnrollment}><input type="hidden" name="id" value={e.id} /><button className="font-semibold hover:text-warn" aria-label="Parar">×</button></form>}
+            </span>
+          ))}
+        </div>
+      )}
 
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
         <div className="card !p-5 flex flex-col gap-1"><span className="text-[13px] text-muted">Valor</span><span className="text-2xl font-bold tracking-[-0.5px]">{deal.kind === "retainer" ? `${eur(deal.value)}/mês` : eur(deal.value)}</span>{deal.kind === "retainer" && <span className="text-xs text-muted">{deal.duration_months} meses · {eur(deal.total_value)} total</span>}</div>

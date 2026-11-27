@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/context";
@@ -115,12 +116,26 @@ export async function saveSequence(formData: FormData) {
 }
 
 export async function enrollContact(formData: FormData) {
-  await requireModule("crm", "write");
+  const ctx = await requireModule("crm", "write");
   const supabase = await createClient();
-  const { error } = await supabase.rpc("enroll_contact", { p_sequence: String(formData.get("sequence_id")), p_contact: String(formData.get("contact_id")), p_deal: String(formData.get("deal_id") || "") || null });
-  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
-  await supabase.rpc("run_automations", { p_org: (await requireModule("crm")).org.id });
+  const back = String(formData.get("back") || "/crm");
+  const seq = String(formData.get("sequence_id")), contact = String(formData.get("contact_id")), deal = String(formData.get("deal_id") || "") || null;
+  const { data: enr, error } = await supabase.rpc("enroll_contact", { p_sequence: seq, p_contact: contact, p_deal: deal });
+  let res = "ok";
+  if (error) res = "erro";
+  else if (!enr) res = "ja";
+  else {
+    // Inscrição manual: o 1.º passo é preparado já (não espera pelos dias de atraso)
+    await supabase.from("enrollments").update({ next_run_at: new Date().toISOString().slice(0, 10) }).eq("id", enr as string);
+    await supabase.rpc("run_automations", { p_org: ctx.org.id });
+    const [{ data: step }, { count }] = await Promise.all([
+      supabase.from("sequence_steps").select("channel").eq("sequence_id", seq).order("position").limit(1).maybeSingle(),
+      supabase.from("outbox").select("id", { count: "exact", head: true }).eq("enrollment_id", enr as string),
+    ]);
+    res = step?.channel === "task" ? "tarefa" : count ? "fila" : step?.channel === "whatsapp" ? "semtel" : "semmail";
+  }
   refresh();
+  redirect(`${back}${back.includes("?") ? "&" : "?"}nutrir=${res}`);
 }
 
 export async function stopEnrollment(formData: FormData) {

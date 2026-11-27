@@ -118,3 +118,11 @@ export async function setGuideUrl(id: string, url: string): Promise<string | nul
   revalidatePath(P);
   return null;
 }
+
+/** Apaga um lead magnet. Os contactos e negócios que ele gerou ficam no CRM; perdem-se só as respostas guardadas. */
+export async function deleteMagnet(formData: FormData) {
+  const ctx = await requireModule("crm", "write");
+  const supabase = await createClient();
+  await supabase.from("lead_magnets").delete().eq("id", String(formData.get("id"))).eq("org_id", ctx.org.id);
+  revalidatePath(P);
+}

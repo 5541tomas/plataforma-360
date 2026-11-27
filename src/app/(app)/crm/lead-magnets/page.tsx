@@ -8,7 +8,8 @@ import { CopyLink } from "@/components/CopyLink";
 import { qrSvg } from "@/lib/qr";
 import { GuideUpload } from "@/components/GuideUpload";
 import type { Offer } from "@/lib/magnets";
-import { saveMagnet, seedBrandMagnets, setMeetingUrl, setPublicSlug } from "./actions";
+import { deleteMagnet, saveMagnet, seedBrandMagnets, setMeetingUrl, setPublicSlug } from "./actions";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 type Mag = { id: string; slug: string; kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: { content?: string; areas?: { key: string; name: string }[] }; custom_domain: string | null; offer: Offer & { whatsapp?: string; keyword?: string; guide_url?: string; whatsapp_body?: string }; sequence_id: string | null; active: boolean; views: number };
 type Resp = { id: string; magnet_id: string; contact_id: string | null; deal_id: string | null; total: number | null; weakest: string | null; created_at: string };
@@ -60,7 +61,15 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
       </PageHeader>
       <p className="-mt-2 max-w-[720px] text-sm text-muted">Ofertas gratuitas que trazem leads qualificadas: cada pessoa entra no CRM com as respostas, a pontuação e a área mais fraca, recebe o resultado (depois de aprovares) e entra numa sequência que leva à reunião 1:1.</p>
       {sp.erro && <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">{sp.erro}</p>}
-      {write && slug && (!((mags ?? []) as Mag[]).some((m) => m.slug === "7-erros") || !((mags ?? []) as Mag[]).some((m) => m.slug === "7-pecados")) && (
+      {write && slug && (mags?.length ?? 0) > 0 && (
+        <details className="self-start text-sm"><summary className="cursor-pointer font-medium text-accent-ink">+ Novo lead magnet</summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {!((mags ?? []) as Mag[]).some((m) => m.slug === "7-erros") && <form action={seedBrandMagnets}><input type="hidden" name="which" value="guide" /><button className="btn-ghost">Guia «Os 7 Erros» (WhatsApp)</button></form>}
+            {!((mags ?? []) as Mag[]).some((m) => m.slug === "7-pecados") && <form action={seedBrandMagnets}><input type="hidden" name="which" value="quiz" /><button className="btn-ghost">Teste «Quantos pecados cometes?»</button></form>}
+          </div>
+        </details>
+      )}
+      {write && slug && (mags?.length ?? 0) === 0 && (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-[#0B0B0B] p-6 text-white">
           <div className="flex max-w-[560px] flex-col gap-1.5">
             <span className="text-[11px] font-semibold uppercase tracking-[3px] text-[#C9A55C]">No teu estilo · preto e dourado</span>
@@ -93,7 +102,10 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
           <article key={m.id} className="card flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex flex-col gap-1"><span className="text-xs font-semibold uppercase tracking-[0.6px] text-muted">{m.kind === "quiz" ? "Teste interativo" : m.kind === "guide" ? "Guia por WhatsApp" : "Ebook"}</span><h2 className="h2">{m.title}</h2></div>
-              <span className={`chip ${m.active ? "bg-good-soft text-[#1E6B30]" : "bg-[#F2F2F5] text-muted"}`}>{m.active ? "Publicado" : "Pausado"}</span>
+              <div className="flex items-center gap-3">
+                <span className={`chip ${m.active ? "bg-good-soft text-[#1E6B30]" : "bg-[#F2F2F5] text-muted"}`}>{m.active ? "Publicado" : "Pausado"}</span>
+                {write && <ConfirmDelete action={deleteMagnet} id={m.id} warning={`Apagar «${m.title}»? O link deixa de funcionar${s.leads ? ` e perdes as ${s.leads} respostas guardadas (os contactos ficam no CRM)` : ""}.`} />}
+              </div>
             </div>
             {slug && (
               <div className="flex flex-wrap items-center gap-4">
