@@ -25,7 +25,7 @@ export default async function DealPage({ params, searchParams }: { params: Promi
   const supabase = await createClient();
   const { data: deal } = await supabase.from("v_deals").select("*").eq("id", id).eq("org_id", ctx.org.id).maybeSingle();
   if (!deal) notFound();
-  const { data: proposals } = await supabase.from("proposals").select("id, number, title, total, status, recurring, created_at, public_token, views, last_viewed_at, accepted_name, accepted_at").eq("deal_id", id).order("created_at", { ascending: false });
+  const { data: proposals } = await supabase.from("proposals").select("id, number, title, total, status, recurring, created_at, public_token, views, last_viewed_at, accepted_name, accepted_at, paid_at, paid_amount, payment_claimed_at, payment_claimed_method").eq("deal_id", id).order("created_at", { ascending: false });
   const [{ data: stages }, { data: acts }, { data: contact }, { data: tasks }] = await Promise.all([
     supabase.from("stages").select("id, name").eq("pipeline_id", deal.pipeline_id).order("position"),
     supabase.from("activities").select("id, type, summary, occurred_at").eq("deal_id", id).order("occurred_at", { ascending: false }),
@@ -167,7 +167,7 @@ export default async function DealPage({ params, searchParams }: { params: Promi
               </Link>
               {(pr.status === "sent" || pr.status === "accepted") && (
                 <div className="flex flex-col gap-1 px-1 text-xs text-muted">
-                  <span>{pr.status === "accepted" && pr.accepted_name ? `✓ Aceite online por ${pr.accepted_name}` : pr.views > 0 ? `👁 Aberta ${pr.views}× · última ${ago(pr.last_viewed_at!)}` : "Ainda não foi aberta pelo cliente"}</span>
+                  <span>{pr.status === "accepted" && pr.paid_at ? `✓ Aceite e sinal pago (${eur2(pr.paid_amount ?? 0)})` : pr.status === "accepted" && pr.payment_claimed_at ? `✓ Aceite · o cliente diz que pagou por ${pr.payment_claimed_method} — confirma em Cobranças` : pr.status === "accepted" && pr.accepted_name ? `✓ Aceite online por ${pr.accepted_name} · sinal por pagar` : pr.views > 0 ? `👁 Aberta ${pr.views}× · última ${ago(pr.last_viewed_at!)}` : "Ainda não foi aberta pelo cliente"}</span>
                   {pr.status === "sent" && <CopyLink url={`${base}/p/${pr.public_token}`} />}
                 </div>
               )}

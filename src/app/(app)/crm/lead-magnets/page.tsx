@@ -7,6 +7,7 @@ import { Empty, PageHeader } from "@/components/ui";
 import { CopyLink } from "@/components/CopyLink";
 import { qrSvg } from "@/lib/qr";
 import { GuideUpload } from "@/components/GuideUpload";
+import { LinkBuilder } from "@/components/LinkBuilder";
 import type { Offer } from "@/lib/magnets";
 import { deleteMagnet, saveMagnet, seedBrandMagnets, setMeetingUrl, setPublicSlug } from "./actions";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -120,6 +121,7 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
                 <div key={l} className="rounded-2xl bg-[#F7F7F9] px-3 py-2.5"><div className="text-xs text-muted">{l}</div><div className="text-[20px] font-semibold tabular-nums">{v}</div>{p && <div className="text-[11px] text-muted">conversão {p}</div>}</div>
               ))}
             </div>
+            {slug && <LinkBuilder url={url} />}
             {write && m.kind === "guide" && <GuideUpload magnetId={m.id} orgId={ctx.org.id} slug={m.slug} current={m.offer.guide_url || undefined} />}
             {m.kind === "quiz" && s.leads > 0 && (
               <p className="text-sm text-ink-2">Pontuação média <strong className="font-semibold">{s.avg}/100</strong> · Área mais fraca: {s.weak.map(([w, n]) => `${w} (${n})`).join(" · ")}</p>

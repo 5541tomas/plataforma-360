@@ -32,3 +32,12 @@ export async function setBookingStatus(formData: FormData) {
   await supabase.from("bookings").update({ status }).eq("id", String(formData.get("id")));
   revalidatePath("/crm/agenda"); revalidatePath("/");
 }
+
+/** Sincroniza já com o Google Calendar (normalmente acontece sozinho de 10 em 10 minutos) */
+export async function syncCalendarNow() {
+  await requireModule("crm", "write");
+  const { runCalendarSync } = await import("@/lib/calendar-sync");
+  const { internalSecret } = await import("@/lib/stripe");
+  await runCalendarSync(internalSecret());
+  revalidatePath("/crm/agenda");
+}

@@ -4,6 +4,7 @@ import { anonClient } from "@/lib/supabase/anon";
 import { QuizRunner } from "@/components/QuizRunner";
 import type { QuizConfig } from "@/lib/magnets";
 import { submitMagnet } from "./actions";
+import { utmFrom } from "@/lib/utm";
 import type { Landing } from "@/lib/landing";
 import { NoirAbout, NoirDeliverables, NoirFinal, NoirHero, NoirHonest, NoirList, NoirShell, NoirTicker } from "@/components/noir/Noir";
 import { GuideForm } from "@/components/noir/GuideForm";
@@ -23,9 +24,10 @@ export async function generateMetadata({ params }: { params: Promise<{ org: stri
   return { metadataBase, title: `${m.title} · ${m.author}`, description, openGraph: { title: m.title, description, type: "website", locale: "pt_PT" }, twitter: { card: "summary_large_image", title: m.title, description } };
 }
 
-export default async function MagnetPage({ params, searchParams }: { params: Promise<{ org: string; slug: string }>; searchParams: Promise<{ erro?: string; passo?: string; r?: string; origem?: string }> }) {
+export default async function MagnetPage({ params, searchParams }: { params: Promise<{ org: string; slug: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { org, slug } = await params;
   const sp = await searchParams;
+  const utm = JSON.stringify(utmFrom(sp) ?? {});
   const { data } = await anonClient().rpc("public_magnet", { p_org: org, p_slug: slug });
   const m = data as M | null;
   if (!m) notFound();
@@ -38,8 +40,8 @@ export default async function MagnetPage({ params, searchParams }: { params: Pro
     const areas = land.areas ?? [];
     const consent = land.consent ?? "Aceito receber mensagens. Sem spam, e paro quando me pedires.";
     const capture = m.kind === "guide"
-      ? <GuideForm org={org} slug={slug} areas={areas} consent={consent} cta={land.hero.cta ?? "MANDA-ME O GUIA"} note={land.hero.note} submit={submitMagnet} error={sp.erro} source={sp.origem} />
-      : <NoirQuiz cfg={m.config} org={org} slug={slug} areas={areas} consent={consent} cta={land.hero.cta ?? "FAZER O TESTE"} note={land.hero.note} submit={submitMagnet} error={sp.erro} initial={initial} />;
+      ? <GuideForm org={org} slug={slug} areas={areas} consent={consent} cta={land.hero.cta ?? "MANDA-ME O GUIA"} note={land.hero.note} submit={submitMagnet} error={sp.erro} utm={utm} />
+      : <NoirQuiz cfg={m.config} org={org} slug={slug} areas={areas} consent={consent} cta={land.hero.cta ?? "FAZER O TESTE"} note={land.hero.note} submit={submitMagnet} error={sp.erro} initial={initial} utm={utm} />;
     const anchor = m.kind === "guide" ? "#guia" : "#teste";
     return (
       <NoirShell l={land}>
@@ -63,7 +65,7 @@ export default async function MagnetPage({ params, searchParams }: { params: Pro
           <h1 className="text-[32px] font-bold leading-[1.1] tracking-[-0.8px] sm:text-[40px]">{m.title}</h1>
           <p className="max-w-[520px] text-[16px] leading-relaxed text-ink-2">{m.subtitle || m.config.intro}</p>
         </div>
-        {m.kind === "quiz" ? <QuizRunner cfg={m.config} org={org} slug={slug} submit={submitMagnet} error={sp.erro} initial={initial} /> : (
+        {m.kind === "quiz" ? <QuizRunner cfg={m.config} org={org} slug={slug} submit={submitMagnet} error={sp.erro} initial={initial} utm={utm} /> : (
           <form action={submitMagnet} className="card flex flex-col gap-4">
             <div className="mx-auto flex h-40 w-32 flex-col justify-between rounded-lg bg-gradient-to-br from-[#0B1B33] to-[#0071E3] p-3 text-left text-white shadow-lg" aria-hidden="true">
               <span className="text-[8px] font-semibold uppercase tracking-[1px] opacity-70">Ebook gratuito</span><span className="text-[13px] font-bold leading-tight">{m.title}</span><span className="text-[8px] opacity-70">{m.author}</span>

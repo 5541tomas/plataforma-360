@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { QuizConfig } from "@/lib/magnets";
 
-export function QuizRunner({ cfg, org, slug, submit, error, initial }: { cfg: QuizConfig; org: string; slug: string; submit: (fd: FormData) => Promise<void>; error?: string; initial?: number[] }) {
+export function QuizRunner({ cfg, org, slug, submit, error, initial, utm }: { cfg: QuizConfig; org: string; slug: string; submit: (fd: FormData) => Promise<void>; error?: string; initial?: number[]; utm?: string }) {
   const n = cfg.questions.length;
   const [answers, setAnswers] = useState<number[]>(initial?.length === n ? initial : []);
   const [step, setStep] = useState<number>(initial?.length === n ? n : -1); // -1 intro · 0..n-1 perguntas · n contacto
@@ -45,7 +45,7 @@ export function QuizRunner({ cfg, org, slug, submit, error, initial }: { cfg: Qu
         <p className="text-sm text-muted">Diz-me para onde enviar o resultado e o ebook.</p>
       </div>
       {error && <p role="alert" className="rounded-xl bg-warn-soft px-3 py-2 text-sm text-warn">{error}</p>}
-      <input type="hidden" name="org" value={org} /><input type="hidden" name="slug" value={slug} /><input type="hidden" name="answers" value={JSON.stringify(answers)} />
+      <input type="hidden" name="org" value={org} /><input type="hidden" name="slug" value={slug} /><input type="hidden" name="answers" value={JSON.stringify(answers)} /><input type="hidden" name="utm" value={utm ?? "{}"} />
       <div aria-hidden="true" className="absolute -left-[9999px]"><label>Site <input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <label className="flex flex-col gap-1.5"><span className="label">Nome</span><input name="name" required autoComplete="name" className="input" /></label>
       <label className="flex flex-col gap-1.5"><span className="label">Email</span><input name="email" type="email" required autoComplete="email" className="input" /></label>

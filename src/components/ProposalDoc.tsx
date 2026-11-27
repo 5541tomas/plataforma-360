@@ -28,7 +28,7 @@ function Footer({ org, number }: { org: string; number: string }) {
   return <div className="mt-auto flex justify-between border-t border-line pt-3 text-[10px] uppercase tracking-[0.8px] text-muted print:hidden"><span>{org}</span><span>Proposta {number}</span></div>;
 }
 
-export function ProposalDoc({ p, org, deal, preparedBy, toolbar }: ProposalData & { toolbar?: React.ReactNode }) {
+export function ProposalDoc({ p, org, deal, preparedBy, toolbar, banner }: ProposalData & { toolbar?: React.ReactNode; banner?: React.ReactNode }) {
   const accent: string = p.accent || "#0071E3";
   const items = (p.items ?? []) as Item[];
   const phases = (p.phases ?? []) as Phase[];
@@ -58,6 +58,7 @@ export function ProposalDoc({ p, org, deal, preparedBy, toolbar }: ProposalData 
         @media print { .sheet + .sheet { margin-top: 0 } }
       `}</style>
       {toolbar && <div className="no-print sticky top-0 z-30 mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-2 px-4 py-2">{toolbar}</div>}
+      {banner && <div className="no-print mx-auto mb-6 max-w-[210mm] px-4">{banner}</div>}
 
       {/* Capa */}
       <Page className="cover min-h-[88vh] justify-between gap-10 !px-7 !py-10 text-white sm:!px-[20mm] sm:!py-[22mm]" style={{ background: `linear-gradient(160deg, ${accent} 0%, #0B1220 100%)` }}>

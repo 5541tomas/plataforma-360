@@ -5,6 +5,7 @@ export const GOOGLE_SCOPES = [
   "openid", "email",
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events",
 ];
 export const googleConfigured = () => !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 export const redirectUri = (origin: string) => `${origin}/api/google/callback`;
@@ -22,7 +23,7 @@ export async function exchangeCode(code: string, origin: string) {
   return res.json() as Promise<{ access_token: string; refresh_token?: string; expires_in: number; id_token?: string }>;
 }
 
-async function refresh(refreshToken: string) {
+export async function refresh(refreshToken: string) {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

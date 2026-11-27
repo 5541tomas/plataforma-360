@@ -22,7 +22,7 @@ export async function submitMagnet(formData: FormData) {
   const { data: rid, error } = await supabase.rpc("public_magnet_submit", {
     p_org: org, p_slug: slug, p_name: String(formData.get("name") ?? ""), p_email: String(formData.get("email") ?? ""), p_phone: String(formData.get("phone") ?? ""),
     p_answers: answers, p_scores: scores, p_total: total, p_weakest: weakest, p_consent: formData.get("consent") === "on", p_base: base,
-    p_honeypot: String(formData.get("website") ?? ""), p_area: String(formData.get("area") ?? ""),
+    p_honeypot: String(formData.get("website") ?? ""), p_area: String(formData.get("area") ?? ""), p_utm: (() => { try { const u = JSON.parse(String(formData.get("utm") ?? "{}")); return u && (u.source || u.campaign) ? u : null; } catch { return null; } })(),
   });
   if (error) redirect(`/d/${org}/${slug}?erro=${encodeURIComponent(error.message)}${mag.kind === "quiz" ? "&passo=contacto&r=" + encodeURIComponent(String(formData.get("answers"))) : ""}`);
   if (!rid) redirect(`/d/${org}/${slug}`);

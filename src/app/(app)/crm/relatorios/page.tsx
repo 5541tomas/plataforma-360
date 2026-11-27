@@ -2,19 +2,22 @@ import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/context";
 import { eur } from "@/lib/format";
 import { Empty, Kpi, PageHeader, Progress } from "@/components/ui";
+import { channelLabel } from "@/lib/utm";
 
-type D = { referred_by_name: string | null; id: string; status: string; stage_id: string; pipeline_id: string; source: string | null; product_id: string | null; product_name: string | null; quantity: number; total_value: number; weighted_value: number; created_at: string; won_at: string | null; expected_close: string | null; kind: string; value: number };
+type D = { referred_by_name: string | null; id: string; contact_id: string | null; status: string; stage_id: string; pipeline_id: string; source: string | null; product_id: string | null; product_name: string | null; quantity: number; total_value: number; weighted_value: number; created_at: string; won_at: string | null; expected_close: string | null; kind: string; value: number };
 
 export default async function RelatoriosPage({ searchParams }: { searchParams: Promise<{ y?: string }> }) {
   const ctx = await requireModule("crm");
   const sp = await searchParams;
   const year = Number(sp.y) || new Date().getFullYear();
   const supabase = await createClient();
-  const [{ data: dealsRaw }, { data: stages }, { data: acts }, { data: krs }] = await Promise.all([
-    supabase.from("v_deals").select("referred_by_name, id, status, stage_id, pipeline_id, source, product_id, product_name, quantity, total_value, weighted_value, created_at, won_at, expected_close, kind, value").eq("org_id", ctx.org.id),
+  const [{ data: dealsRaw }, { data: stages }, { data: acts }, { data: krs }, { data: contactsRaw }, { data: bookings }] = await Promise.all([
+    supabase.from("v_deals").select("referred_by_name, id, contact_id, status, stage_id, pipeline_id, source, product_id, product_name, quantity, total_value, weighted_value, created_at, won_at, expected_close, kind, value").eq("org_id", ctx.org.id),
     supabase.from("stages").select("id, name, position, is_won, is_lost, pipeline_id").eq("org_id", ctx.org.id).order("position"),
     supabase.from("activities").select("deal_id, summary").eq("org_id", ctx.org.id).like("summary", "Proposta enviada%"),
     supabase.from("key_results").select("label, target_value, goals!inner(horizon, period_start)").eq("org_id", ctx.org.id),
+    supabase.from("contacts").select("id, channel, campaign, created_at").eq("org_id", ctx.org.id).limit(10000),
+    supabase.from("bookings").select("contact_id, status").eq("org_id", ctx.org.id).neq("status", "cancelled"),
   ]);
   const deals = (dealsRaw ?? []) as D[];
   const inYear = (s?: string | null) => !!s && new Date(s).getFullYear() === year;
@@ -45,6 +48,23 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
     s.n++; if (d.status === "won") { s.won++; s.value += Number(d.total_value); }
     bySource.set(k, s);
   });
+
+  // Canal de aquisição (origem do contacto): leads → reuniões → clientes → faturado
+  const srcToCh = (src: string | null) => { const x = (src ?? "").toLowerCase(); return x.includes("linkedin") ? "linkedin" : x.includes("refer") || x.includes("recomend") ? "referencia" : x.includes("evento") ? "evento" : x.includes("instagram") ? "instagram" : null; };
+  const met = new Set((bookings ?? []).map((b) => b.contact_id));
+  const byChannel = new Map<string, { leads: number; meet: number; won: number; value: number }>();
+  (contactsRaw ?? []).filter((c) => inYear(c.created_at)).forEach((c) => {
+    const ds = deals.filter((d) => d.contact_id === c.id);
+    const ch = c.channel || srcToCh(ds[0]?.source ?? null) || "direto";
+    const r = byChannel.get(ch) ?? { leads: 0, meet: 0, won: 0, value: 0 };
+    r.leads++;
+    if (met.has(c.id) || ds.some((d) => d.status === "won" || (pos.get(d.stage_id)?.position ?? 0) >= 1)) r.meet++;
+    const w = ds.filter((d) => d.status === "won");
+    if (w.length) { r.won++; r.value += w.reduce((a, d) => a + Number(d.total_value), 0); }
+    byChannel.set(ch, r);
+  });
+  const chRows = [...byChannel.entries()].sort((a, b) => b[1].value - a[1].value || b[1].leads - a[1].leads);
+  const pctOf = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
 
   // Quem recomenda
   const byRef = new Map<string, { n: number; won: number; value: number }>();
@@ -86,6 +106,18 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
         <Kpi label="Taxa de ganho" value={winRate === null ? "—" : `${winRate}%`} hint={`${won.length} ganhos · ${lost.length} perdidos`} />
         <Kpi label="Ticket médio" value={eur(avgTicket)} />
         <Kpi label="Ciclo médio de venda" value={cycle === null ? "—" : `${cycle} dias`} hint={`${sentProposals} propostas enviadas`} />
+      </section>
+
+      <section className="card flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="h2">De onde vêm os clientes · {year}</h2><span className="text-xs text-muted">Canal da primeira visita (links com ?origem=…) · cria links em Lead magnets</span></div>
+        {chRows.length === 0 ? <Empty>Ainda sem leads este ano.</Empty> : (
+          <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-sm">
+            <thead className="text-left text-xs text-muted"><tr><th className="py-2 font-medium">Canal</th><th className="py-2 text-right font-medium">Leads</th><th className="py-2 text-right font-medium">Reuniões</th><th className="py-2 text-right font-medium">Clientes</th><th className="py-2 text-right font-medium">Conversão</th><th className="py-2 text-right font-medium">Faturado</th></tr></thead>
+            <tbody>{chRows.map(([k, r]) => (
+              <tr key={k} className="border-t border-line"><td className="py-2.5 font-medium">{channelLabel(k)}</td><td className="py-2.5 text-right tabular-nums">{r.leads}</td><td className="py-2.5 text-right tabular-nums">{r.meet} <span className="text-xs text-muted">{pctOf(r.meet, r.leads)}</span></td><td className="py-2.5 text-right tabular-nums">{r.won}</td><td className="py-2.5 text-right tabular-nums">{pctOf(r.won, r.leads)}</td><td className="py-2.5 text-right font-semibold tabular-nums">{eur(r.value)}</td></tr>
+            ))}</tbody>
+          </table></div>
+        )}
       </section>
 
       <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">

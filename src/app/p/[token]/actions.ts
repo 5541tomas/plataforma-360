@@ -9,3 +9,9 @@ export async function acceptProposal(token: string, name: string): Promise<{ ok:
   revalidatePath(`/p/${token}`);
   return { ok: true };
 }
+
+export async function claimPaid(token: string, method: string) {
+  if (!/^[0-9a-f-]{36}$/.test(token)) return;
+  await anonClient().rpc("public_proposal_claim_paid", { p_token: token, p_method: method });
+  revalidatePath(`/p/${token}`);
+}

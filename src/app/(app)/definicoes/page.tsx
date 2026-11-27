@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui";
 import { revokeApiToken, saveLeadForm } from "./actions";
 import { addMember, changePassword, disconnectGoogle, removeMember, renameOrg, syncGoogleNow, updateMember, updateProfile } from "./actions";
 import { googleConfigured } from "@/lib/google";
+import { IntegrationsSection } from "./IntegrationsSection";
 import { ClaudeConnect } from "@/components/ClaudeConnect";
 
 const LEVELS = [["none", "Sem acesso"], ["read", "Ler"], ["write", "Editar"]] as const;
@@ -94,6 +95,8 @@ export default async function DefinicoesPage({ searchParams }: { searchParams: P
           <button className="btn self-start">Guardar</button>
         </form>
       )}
+
+      {(ctx.role === "owner" || ctx.role === "admin") && <IntegrationsSection ctx={ctx} />}
 
       <section className="card flex flex-col gap-3">
         <h2 className="h2">Falar com a plataforma a partir do Claude</h2>

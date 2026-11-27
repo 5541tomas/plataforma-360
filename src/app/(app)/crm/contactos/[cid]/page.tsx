@@ -9,6 +9,7 @@ import { dealTemplates } from "@/lib/whatsapp";
 import { addContactNote, addTestimonial, createDeal, saveContact } from "../../actions";
 import { enrollContact, setConsent, stopEnrollment } from "../../automacoes/actions";
 import { NurtureNotice } from "@/components/NurtureNotice";
+import { channelLabel } from "@/lib/utm";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -41,7 +42,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <PageHeader eyebrow={[c.role, company?.name, c.area].filter(Boolean).join(" · ") || "Contacto"} title={c.name}>
+      <PageHeader eyebrow={[c.role, company?.name, c.area, c.channel && c.channel !== "direto" ? `via ${channelLabel(c.channel)}${c.campaign ? ` (${c.campaign})` : ""}` : null].filter(Boolean).join(" · ") || "Contacto"} title={c.name}>
         <Link href="/crm/contactos" className="btn-ghost">‹ Contactos</Link>
         {c.email && <a href={`mailto:${c.email}`} className="btn-ghost">Email</a>}
         <WhatsAppMenu phone={c.phone} templates={templates} />

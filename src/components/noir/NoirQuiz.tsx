@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { QuizConfig } from "@/lib/magnets";
 
 /** Teste no estilo da marca: começa no cartão do topo, uma pergunta de cada vez, contacto no fim. */
-export function NoirQuiz({ cfg, org, slug, areas, consent, cta, note, submit, error, initial }: { cfg: QuizConfig; org: string; slug: string; areas: string[]; consent: string; cta: string; note?: string; submit: (fd: FormData) => Promise<void>; error?: string; initial?: number[] }) {
+export function NoirQuiz({ cfg, org, slug, areas, consent, cta, note, submit, error, initial, utm }: { cfg: QuizConfig; org: string; slug: string; areas: string[]; consent: string; cta: string; note?: string; submit: (fd: FormData) => Promise<void>; error?: string; initial?: number[]; utm?: string }) {
   const n = cfg.questions.length;
   const [answers, setAnswers] = useState<number[]>(initial?.length === n ? initial : []);
   const [step, setStep] = useState(error && initial?.length === n ? n : -1);
@@ -37,7 +37,7 @@ export function NoirQuiz({ cfg, org, slug, areas, consent, cta, note, submit, er
       <p className="nr-eyebrow" style={{ marginBottom: 10 }}>RESULTADO PRONTO</p>
       <h2 className="nr-q-title">Para onde te mando o resultado?</h2>
       {error && <p className="nr-err" role="alert">{error}</p>}
-      <input type="hidden" name="org" value={org} /><input type="hidden" name="slug" value={slug} /><input type="hidden" name="answers" value={JSON.stringify(answers)} />
+      <input type="hidden" name="org" value={org} /><input type="hidden" name="slug" value={slug} /><input type="hidden" name="answers" value={JSON.stringify(answers)} /><input type="hidden" name="utm" value={utm ?? "{}"} />
       <div aria-hidden="true" style={{ position: "absolute", left: -9999 }}><label>Site <input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <div className="nr-fields">
         <label className="nr-field">O teu nome<input name="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" placeholder="Como te chamas?" /></label>
