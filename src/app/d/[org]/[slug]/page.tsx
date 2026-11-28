@@ -38,8 +38,9 @@ export default async function MagnetPage({ params, searchParams }: { params: Pro
   const pc = (peek.data as { kind?: string; config?: Landing & { landing?: Landing } } | null);
   const ab = (pc?.kind === "guide" ? pc?.config : pc?.config?.landing)?.ab;
   const variant = ab?.on && ab.lines?.length ? (saved === "A" || saved === "B" ? saved : Math.random() < 0.5 ? "A" : "B") : "A";
-  const utm = JSON.stringify({ ...(u ?? {}), ...(variant === "B" ? { variant: "B" } : ab?.on ? { variant: "A" } : {}) });
-  const { data } = await anonClient().rpc("public_magnet", { p_org: org, p_slug: slug, p_channel: u?.source ?? null, p_variant: variant });
+  const ref = typeof sp.ref === "string" ? sp.ref.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 20) : "";
+  const utm = JSON.stringify({ ...(u ?? {}), ...(ref ? { ref, ...(u?.source ? {} : { source: "referencia" }) } : {}), ...(variant === "B" ? { variant: "B" } : ab?.on ? { variant: "A" } : {}) });
+  const { data } = await anonClient().rpc("public_magnet", { p_org: org, p_slug: slug, p_channel: u?.source ?? (ref ? "referencia" : null), p_variant: variant });
   const m = data as (M & { pixel?: string | null }) | null;
   if (!m) notFound();
   let initial: number[] | undefined;

@@ -116,6 +116,8 @@ const CSS = `
 .nr-q-title{margin:0 0 22px;font-family:var(--nr-serif),Georgia,serif;font-weight:700;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.2;color:#fff;text-wrap:balance}
 .nr-opt{display:flex;width:100%;gap:16px;align-items:center;text-align:left;padding:16px 18px;margin-bottom:10px;background:transparent;border:1px solid #333;color:var(--soft);font-family:inherit;font-size:15.5px;line-height:1.4;cursor:pointer;transition:border-color .2s,background .2s}
 .nr-opt:hover{border-color:var(--gold);background:#121212}
+.peer:checked+.nr-opt{border-color:var(--gold);background:rgba(201,165,92,.12);color:#fff}
+.peer:focus-visible+.nr-opt{outline:2px solid var(--gold);outline-offset:2px}
 .nr-opt[aria-checked=true]{border-color:var(--gold);background:rgba(201,165,92,.12);color:#fff}
 .nr-opt .k{font-weight:800;color:var(--gold);min-width:18px}
 .nr-back{background:none;border:0;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;padding:8px 0}

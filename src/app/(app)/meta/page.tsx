@@ -10,6 +10,8 @@ import { saveGoalSettings } from "./actions";
 
 const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n)));
 
+import { funnelForecast } from "@/lib/growth";
+import { channelLabel } from "@/lib/utm";
 export default async function MetaPage({ searchParams }: { searchParams: Promise<{ ano?: string }> }) {
   const ctx = await getContext();
   const sp = await searchParams;
@@ -17,6 +19,7 @@ export default async function MetaPage({ searchParams }: { searchParams: Promise
   const g = await goalEngine(supabase, ctx.org.id, sp.ano ? Number(sp.ano) : undefined);
   const cp = await capacityAndProfit(supabase, ctx.org.id, g.year);
   const crm = canRead(ctx, "crm");
+  const fc = crm && g.target > 0 ? await funnelForecast(supabase, ctx.org.id, g.started ? g.perWeek.conversations : g.convNeeded / 46) : null;
   const now = new Date();
   const soldPct = g.target ? g.sold / g.target : 0;
   const expectedPct = g.target && g.started ? g.expectedNow / g.target : 0;
@@ -148,6 +151,14 @@ export default async function MetaPage({ searchParams }: { searchParams: Promise
                 <Link href={next.href} className="ml-auto font-semibold text-[#7FB2F0]">{next.cta} ›</Link>
               </div>
             )}
+          </section>
+        )}
+        {fc && (
+          <section className="card flex flex-col gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-[17px] font-semibold">Previsão pelo funil</h2><span className="text-[13px] text-muted">lead → conversa: {Math.round(fc.rate * 100)}% ({fc.rateSource === "real" ? "a tua conversão real" : "estimativa até haver dados"})</span></div>
+            <p className="text-[15px] leading-relaxed">Para chegares aos <strong className="font-semibold">{eur(g.target)}</strong> precisas de cerca de <strong className="font-semibold">{fc.needPerWeek} leads por semana</strong>{fc.totalLeads > 0 ? <> — nas últimas 4 semanas tiveste <strong className={`font-semibold ${fc.nowPerWeek >= fc.needPerWeek ? "text-good" : "text-warn"}`}>{String(fc.nowPerWeek).replace(".", ",")}</strong>/semana.</> : "."}</p>
+            <div className="h-2 overflow-hidden rounded-full bg-[#F2F2F5]" role="img" aria-label={`${Math.round(Math.min(1, fc.nowPerWeek / Math.max(1, fc.needPerWeek)) * 100)}% das leads necessárias`}><div className={`h-full rounded-full ${fc.nowPerWeek >= fc.needPerWeek ? "bg-good" : "bg-accent"}`} style={{ width: `${Math.min(100, (fc.nowPerWeek / Math.max(1, fc.needPerWeek)) * 100)}%` }} /></div>
+            <p className="text-sm text-muted">{fc.nowPerWeek >= fc.needPerWeek ? "Estás a gerar leads suficientes: o foco agora é transformar conversas em propostas." : `Faltam ${Math.max(1, Math.ceil(fc.needPerWeek - fc.nowPerWeek))} leads por semana.`}{fc.bestChannel ? ` O canal que mais leads te traz é ${channelLabel(fc.bestChannel)} — reforça-o primeiro.` : " Partilha o guia nos teus canais com o gerador de links (CRM → Lead magnets) para saberes qual funciona melhor."} <Link href="/crm/lead-magnets" className="font-medium text-accent-ink">Lead magnets ›</Link></p>
           </section>
         )}
         {!g.started && (

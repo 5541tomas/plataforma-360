@@ -17,6 +17,10 @@ import { NurtureNotice } from "@/components/NurtureNotice";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
+import { ObjectionList, type Obj } from "@/components/ObjectionList";
+import { markObjectionUsed } from "../objecoes/actions";
+import { createRefCode, requestTestimonial } from "../clientes/actions";
+import { referralBase, refLink } from "@/lib/growth";
 export default async function DealPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ nutrir?: string }> }) {
   const sp = await searchParams;
   const ctx = await requireModule("crm");
@@ -39,6 +43,16 @@ export default async function DealPage({ params, searchParams }: { params: Promi
 
   const hh = await headers();
   const base = process.env.NEXT_PUBLIC_SITE_URL || `${hh.get("x-forwarded-proto") ?? "https"}://${hh.get("host")}`;
+  const won = deal.status === "won";
+  const [{ data: objs }, { data: testimonial }, refBase] = await Promise.all([
+    deal.status === "open" ? supabase.from("objections").select("id, category, title, meaning, response, question, used").eq("org_id", ctx.org.id).order("used", { ascending: false }).order("position") : Promise.resolve({ data: [] }),
+    won ? supabase.from("testimonials").select("token, status, rating").eq("deal_id", id).maybeSingle() : Promise.resolve({ data: null }),
+    won && deal.contact_id ? referralBase(supabase, ctx.org.id, base) : Promise.resolve(null),
+  ]);
+  const refCode = (contact as { ref_code?: string | null } | null)?.ref_code ?? null;
+  const firstName = ((contact as { name?: string } | null)?.name ?? "").split(" ")[0];
+  const tUrl = testimonial ? `${base}/o/${testimonial.token}` : null;
+  const waText = (t: string) => { const ph = ((contact as { phone?: string | null } | null)?.phone ?? "").replace(/\D/g, "").replace(/^(9\d{8})$/, "351$1"); return `https://wa.me/${ph}?text=${encodeURIComponent(t)}`; };
   const sentProp = (proposals ?? []).find((x) => x.status === "sent" || x.status === "accepted");
   const proposalUrl = sentProp ? `${base}/p/${sentProp.public_token}` : undefined;
   const ago = (s: string) => { const m = Math.round((Date.now() - new Date(s).getTime()) / 60000); return m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m / 60)} h` : `há ${Math.round(m / 1440)} dias`; };
@@ -203,6 +217,40 @@ export default async function DealPage({ params, searchParams }: { params: Promi
           )}
         </div>
       </section>
+
+      {((objs?.length ?? 0) > 0 || won) && (
+        <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">
+          {(objs?.length ?? 0) > 0 && (
+            <div className="card flex flex-col gap-3">
+              <div className="flex items-baseline justify-between gap-2"><h2 className="h2">Objeções</h2><Link href="/crm/objecoes" className="text-sm font-medium text-accent-ink">Biblioteca ›</Link></div>
+              <p className="-mt-1 text-sm text-muted">O cliente disse «vou pensar» ou «é caro»? Escreve o que ouviste e copia a resposta.</p>
+              <ObjectionList items={(objs ?? []) as Obj[]} compact onUse={write ? markObjectionUsed : undefined} />
+            </div>
+          )}
+          {won && (
+            <div className="card flex flex-col gap-3">
+              <h2 className="h2">Testemunho e recomendações</h2>
+              {!testimonial ? (
+                write && <form action={requestTestimonial} className="flex flex-col gap-2"><input type="hidden" name="deal_id" value={deal.id} /><p className="text-sm text-muted">Gera um link para {firstName || "o cliente"} deixar o testemunho em 1 minuto. Depois de aprovares, aparece nas propostas e na landing page.</p><button className="btn self-start">Pedir testemunho</button></form>
+              ) : (
+                <div className="flex flex-col gap-2 text-sm">
+                  <span>{testimonial.status === "requested" ? "⏳ Pedido enviado — à espera da resposta" : testimonial.status === "submitted" ? <>✓ Respondeu{testimonial.rating ? ` (${testimonial.rating}/5)` : ""} — <Link href="/crm/clientes" className="font-medium text-accent-ink">aprovar</Link></> : testimonial.status === "approved" ? "✓ Publicado" : "Não publicado"}</span>
+                  {testimonial.status === "requested" && tUrl && <><CopyLink url={tUrl} />
+                    <a className="btn-ghost self-start" target="_blank" rel="noopener noreferrer" href={waText(`Olá ${firstName}! Foi um gosto trabalhar contigo. Podes deixar-me 2 linhas sobre como correu? Demora 1 minuto: ${tUrl}`)}>Enviar por WhatsApp</a></>}
+                </div>
+              )}
+              {deal.contact_id && refBase && (
+                <div className="flex flex-col gap-2 border-t border-line pt-3 text-sm">
+                  <span className="font-semibold">Link de recomendação</span>
+                  {refCode ? <><CopyLink url={refLink(refBase, refCode)} /><a className="btn-ghost self-start" target="_blank" rel="noopener noreferrer" href={waText(`${firstName}, se conheceres algum freelancer que precise de vender melhor, partilha este guia gratuito: ${refLink(refBase, refCode)} — quem chegar por ti fica associado a ti 🙂`)}>Enviar por WhatsApp</a></>
+                    : write && <form action={createRefCode}><input type="hidden" name="contact_id" value={deal.contact_id} /><input type="hidden" name="back" value={`/crm/${deal.id}`} /><button className="btn-ghost">Criar link pessoal</button></form>}
+                  <span className="text-xs text-muted">Quem pedir o guia por este link fica associado a {firstName || "este cliente"}. Vês tudo em CRM → Testemunhos.</span>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }

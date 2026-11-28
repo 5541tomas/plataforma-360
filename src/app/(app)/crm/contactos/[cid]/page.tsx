@@ -10,6 +10,10 @@ import { addContactNote, addTestimonial, createDeal, saveContact } from "../../a
 import { enrollContact, setConsent, stopEnrollment } from "../../automacoes/actions";
 import { NurtureNotice } from "@/components/NurtureNotice";
 import { channelLabel } from "@/lib/utm";
+import { headers } from "next/headers";
+import { CopyLink } from "@/components/CopyLink";
+import { referralBase, refLink } from "@/lib/growth";
+import { createRefCode } from "../../clientes/actions";
 
 const ACT: Record<string, string> = { note: "Nota", call: "Chamada", email: "Email", meeting: "Reunião", task: "Tarefa" };
 
@@ -38,6 +42,13 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
     .or(dealIds.length ? `contact_id.eq.${cid},deal_id.in.(${dealIds.join(",")})` : `contact_id.eq.${cid}`)
     .order("occurred_at", { ascending: false }).limit(100);
   const dealTitle = new Map((deals ?? []).map((d) => [d.id, d.title]));
+  const hh = await headers();
+  const rb = await referralBase(supabase, ctx.org.id, process.env.NEXT_PUBLIC_SITE_URL || `${hh.get("x-forwarded-proto") ?? "https"}://${hh.get("host")}`);
+  const [{ data: refDeals }, { data: referrer }] = await Promise.all([
+    supabase.from("v_deals").select("id, title, status, value, contact_name").eq("org_id", ctx.org.id).eq("referred_by", cid),
+    c.referred_by ? supabase.from("contacts").select("id, name").eq("id", c.referred_by).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const refWon = (refDeals ?? []).filter((d) => d.status === "won");
   const templates = dealTemplates({ contact: c.name, title: deals?.[0]?.title ?? "o nosso trabalho", me: ctx.name, hasProposal: false });
 
   return (
@@ -158,6 +169,15 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               </fieldset>
             </form>
             {company && <Link href={`/crm/empresas/${company.id}`} className="text-sm font-medium text-accent-ink">Ver empresa {company.name}</Link>}
+            {referrer && <p className="text-sm text-muted">Recomendado por <Link href={`/crm/contactos/${referrer.id}`} className="font-medium text-accent-ink">{referrer.name}</Link></p>}
+            {rb && (
+              <div className="flex flex-col gap-2 border-t border-line pt-3 text-sm">
+                <span className="font-semibold">Recomendações</span>
+                {c.ref_code ? <CopyLink url={refLink(rb, c.ref_code)} /> : write && <form action={createRefCode}><input type="hidden" name="contact_id" value={cid} /><input type="hidden" name="back" value={`/crm/contactos/${cid}`} /><button className="btn-ghost">Criar link pessoal de recomendação</button></form>}
+                {(refDeals?.length ?? 0) > 0 && <span className="text-muted">Trouxe {refDeals!.length} lead(s) · {refWon.length} cliente(s) · {eur(refWon.reduce((a, d) => a + Number(d.value), 0))}</span>}
+                {(refDeals ?? []).slice(0, 5).map((d) => <Link key={d.id} href={`/crm/${d.id}`} className="text-accent-ink">{d.contact_name ?? d.title}{d.status === "won" ? " ✓" : ""}</Link>)}
+              </div>
+            )}
           </div>
         </div>
       </section>

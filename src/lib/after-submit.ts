@@ -61,3 +61,15 @@ export async function afterBooking(id: string, base: string) {
     ].filter(Boolean));
   } catch { /* idem */ }
 }
+
+export async function afterEvent(id: string, base: string) {
+  if (!emailConfigured()) return;
+  const { data } = await anonClient().rpc("public_event_after", { p_id: id });
+  const d = data as { alert: Alert & { event: string; taken: number; capacity: number | null }; sender: SenderInfo } | null;
+  if (!d?.alert) return;
+  try {
+    await sendAlert(d.alert, d.sender, base, `Nova inscrição: ${d.alert.name} · ${d.alert.event}`, [
+      `${d.alert.name} inscreveu-se em «${d.alert.event}».`, `Inscritos: ${d.alert.taken}${d.alert.capacity ? ` de ${d.alert.capacity}` : ""}.`,
+    ]);
+  } catch { /* idem */ }
+}

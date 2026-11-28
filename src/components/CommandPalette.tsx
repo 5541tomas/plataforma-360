@@ -9,7 +9,7 @@ const PAGES: Item[] = [
   { group: "Ir para", label: "Finanças", href: "/financas" }, { group: "Ir para", label: "Cobranças", href: "/financas/cobrancas" }, { group: "Ir para", label: "Dívidas", href: "/financas/dividas" },
   { group: "Ir para", label: "Importar extrato", href: "/financas/importar" }, { group: "Ir para", label: "CRM · Pipeline", href: "/crm" }, { group: "Ir para", label: "Contactos", href: "/crm/contactos" },
   { group: "Ir para", label: "Automações · fila de aprovação", href: "/crm/automacoes" }, { group: "Ir para", label: "Lead magnets", href: "/crm/lead-magnets" }, { group: "Ir para", label: "Agenda de marcações", href: "/crm/agenda" },
-  { group: "Ir para", label: "Relatórios do CRM", href: "/crm/relatorios" }, { group: "Ir para", label: "Revisão semanal", href: "/revisao" }, { group: "Ir para", label: "Revisão mensal", href: "/revisao/mensal" },
+  { group: "Ir para", label: "Relatórios do CRM", href: "/crm/relatorios" }, { group: "Ir para", label: "Objeções · respostas", href: "/crm/objecoes" }, { group: "Ir para", label: "Eventos e workshops", href: "/crm/eventos" }, { group: "Ir para", label: "Testemunhos e recomendações", href: "/crm/clientes" }, { group: "Ir para", label: "Revisão semanal", href: "/revisao" }, { group: "Ir para", label: "Revisão mensal", href: "/revisao/mensal" },
   { group: "Ir para", label: "Assistente IA", href: "/assistente" }, { group: "Ir para", label: "Definições", href: "/definicoes" },
 ];
 
