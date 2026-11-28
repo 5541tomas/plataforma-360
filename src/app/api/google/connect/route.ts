@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 import { getContext } from "@/lib/context";
-import { GOOGLE_SCOPES, googleClientId, googleConfigured, redirectUri } from "@/lib/google";
+import { GOOGLE_SCOPES, googleClientId, googleConfigProblem, googleConfigured, redirectUri } from "@/lib/google";
 
 export async function GET(request: Request) {
   await getContext();
   const origin = new URL(request.url).origin;
   if (!googleConfigured()) return NextResponse.redirect(`${origin}/definicoes?erro=${encodeURIComponent("A integração Google ainda não está configurada no servidor.")}`);
+  const problem = googleConfigProblem();
+  if (problem) return NextResponse.redirect(`${origin}/definicoes?erro=${encodeURIComponent(problem)}`);
   const state = randomBytes(24).toString("hex");
   (await cookies()).set("g_state", state, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 600, path: "/" });
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");

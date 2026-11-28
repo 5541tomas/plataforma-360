@@ -11,6 +11,15 @@ const clientId = () => (process.env.GOOGLE_CLIENT_ID ?? "").trim().replace(/^["'
 const clientSecret = () => (process.env.GOOGLE_CLIENT_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
 export const googleClientId = clientId;
 export const googleConfigured = () => !!(clientId() && clientSecret());
+/** Deteta enganos comuns na configuração (ex.: segredo colado no lugar do ID) */
+export const googleConfigProblem = () => {
+  const id = clientId(), sec = clientSecret();
+  if (!id || !sec) return null;
+  if (id.startsWith("GOCSPX")) return "No Netlify, GOOGLE_CLIENT_ID tem o segredo do cliente (começa por GOCSPX-). Põe lá o ID do cliente (termina em .apps.googleusercontent.com).";
+  if (!id.endsWith(".apps.googleusercontent.com")) return "No Netlify, GOOGLE_CLIENT_ID não parece um ID de cliente válido (deve terminar em .apps.googleusercontent.com).";
+  if (sec.endsWith(".apps.googleusercontent.com")) return "No Netlify, GOOGLE_CLIENT_SECRET tem o ID do cliente. Põe lá o segredo (começa por GOCSPX-).";
+  return null;
+};
 export const redirectUri = (origin: string) => `${origin}/api/google/callback`;
 
 export async function exchangeCode(code: string, origin: string) {
