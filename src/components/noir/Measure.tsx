@@ -35,11 +35,11 @@ export function MetaPixel({ id, event }: { id?: string | null; event?: "Lead" | 
   if (!id || !ask) return null;
   const choose = (yes: boolean) => { try { localStorage.setItem(KEY, yes ? "yes" : "no"); } catch { /* */ } setAsk(false); if (yes) loadPixel(id, event); };
   return (
-    <div role="dialog" aria-label="Cookies" style={{ position: "fixed", left: 12, right: 12, bottom: "calc(84px + env(safe-area-inset-bottom,0px))", zIndex: 70, maxWidth: 520, margin: "0 auto", background: "#111", border: "1px solid #333", padding: "16px 18px", color: "#CFCFCF", fontSize: 13, lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div role="dialog" aria-label="Cookies" style={{ position: "fixed", left: 12, right: 12, bottom: "calc(84px + env(safe-area-inset-bottom,0px))", zIndex: 70, maxWidth: 520, margin: "0 auto", background: "#111", border: "1px solid #333", padding: "12px 14px", color: "#CFCFCF", fontSize: 12.5, lineHeight: 1.45, display: "flex", flexDirection: "column", gap: 10 }}>
       <span>Uso cookies de medição (Meta) para saber que anúncios funcionam. Nada é vendido. <a href="#privacidade">Saber mais</a>.</span>
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => choose(true)} style={{ flex: 1, minHeight: 42, background: "#C9A55C", color: "#080808", border: 0, fontWeight: 800, letterSpacing: 1.5, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>ACEITAR</button>
-        <button onClick={() => choose(false)} style={{ flex: 1, minHeight: 42, background: "transparent", color: "#CFCFCF", border: "1px solid #444", fontWeight: 700, letterSpacing: 1.5, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>RECUSAR</button>
+        <button onClick={() => choose(true)} style={{ flex: 1, minHeight: 40, background: "#C9A55C", color: "#080808", border: 0, fontWeight: 800, letterSpacing: 1.5, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>ACEITAR</button>
+        <button onClick={() => choose(false)} style={{ flex: 1, minHeight: 40, background: "transparent", color: "#CFCFCF", border: "1px solid #444", fontWeight: 700, letterSpacing: 1.5, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>RECUSAR</button>
       </div>
     </div>
   );

@@ -153,10 +153,8 @@ const CSS = `
 .nr-book-wrap{flex:0 0 auto;perspective:1400px;padding:10px 20px 0}
 .nr-book{position:relative;width:200px;height:278px;transform-style:preserve-3d;transform:rotateY(-28deg) rotateX(6deg);transition:transform .6s cubic-bezier(.2,.7,.2,1);animation:nrfloat 6s ease-in-out infinite}
 .nr-book-wrap:hover .nr-book{transform:rotateY(-8deg) rotateX(2deg)}
-.nr-book .fr{position:absolute;inset:0;background:linear-gradient(160deg,#151515 0%,#0A0A0A 60%,#1A1407 100%);border:1px solid #3A3022;padding:22px 18px;display:flex;flex-direction:column;justify-content:space-between;transform:translateZ(14px);box-shadow:inset 4px 0 0 rgba(255,255,255,.04)}
+.nr-book .fr{position:absolute;inset:0;background:linear-gradient(90deg,#6E5629 0,#C9A55C 4px,#8A6F38 9px,#121212 10px,#0A0A0A 60%,#1A1407 100%);border:1px solid #3A3022;padding-left:24px !important;padding:22px 18px;display:flex;flex-direction:column;justify-content:space-between;transform:translateZ(14px);box-shadow:inset 4px 0 0 rgba(255,255,255,.04),6px 3px 0 -1px #E9E3D5,9px 6px 0 -1px #CFC8B8,30px 40px 60px rgba(0,0,0,.65)}
 .nr-book .fr:before{content:"";position:absolute;inset:10px;border:1px solid rgba(201,165,92,.35);pointer-events:none}
-.nr-book .sp{position:absolute;top:0;left:0;width:28px;height:100%;background:linear-gradient(90deg,#8A6F38,#C9A55C 55%,#6E5629);transform:rotateY(-90deg) translateZ(0) translateX(-14px);transform-origin:left}
-.nr-book .pg{position:absolute;top:4px;right:0;width:26px;height:calc(100% - 8px);background:repeating-linear-gradient(90deg,#EDE8DD 0 1px,#D8D2C4 1px 2px);transform:rotateY(90deg) translateZ(186px) translateX(13px)}
 .nr-book .sh{position:absolute;left:10%;right:-10%;bottom:-36px;height:30px;background:radial-gradient(ellipse at center,rgba(0,0,0,.7),rgba(0,0,0,0) 70%);transform:translateZ(-30px) rotateX(90deg)}
 .nr-book .k{font-size:9px;letter-spacing:3px;color:var(--gold);font-weight:700}
 .nr-book .t{font-weight:900;font-size:27px;line-height:.95;color:#fff;letter-spacing:-.02em}
@@ -179,9 +177,11 @@ const CSS = `
   .nr-sticky{display:block}
   .nr-hero-grid{flex-direction:column-reverse;align-items:stretch;gap:0}
   .nr-book-wrap{align-self:center;padding:34px 0 0}
-  .nr-book{width:150px;height:208px}
-  .nr-book .pg{transform:rotateY(90deg) translateZ(136px) translateX(13px)}
-  .nr-book .t{font-size:20px}
+  .nr-book{width:116px;height:162px}
+  .nr-book .fr{padding:14px 12px}
+  .nr-book .k,.nr-book .a{font-size:7px;letter-spacing:2px}
+  .nr-step-hint{display:none}
+    .nr-book .t{font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){.nr-book{animation:none}.nr-sticky{transition:none}}
 @media (prefers-reduced-motion:reduce){.nr-ticker-row{animation:none}.nr-cta,.nr-pages img,.nr-b-opt{transition:none}}
@@ -312,7 +312,7 @@ export function NoirBook({ title, author, kicker = "GUIA GRATUITO" }: { title: s
   const head = words.slice(0, Math.ceil(words.length / 2)).join(" "), tail = words.slice(Math.ceil(words.length / 2)).join(" ");
   return (
     <div className="nr-book-wrap" aria-hidden="true">
-      <div className="nr-book"><div className="sp" /><div className="pg" /><div className="sh" />
+      <div className="nr-book"><div className="sh" />
         <div className="fr"><span className="k">{kicker}</span><span className="t">{head}<em>{tail}</em></span><span className="a">{author.toUpperCase()}</span></div>
       </div>
     </div>

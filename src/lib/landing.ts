@@ -59,7 +59,7 @@ export const GUIDE_7_ERROS: Landing = {
   about: ABOUT,
   final: { title: "E AGORA", a_title: "Continuar igual.", a_text: "Mais um ano de meses cheios, meses vazios e “vou pensar”. É grátis também, mas sai caro.", b_title: "Ler 13 páginas e corrigir o que está a falhar.", cta: "QUERO O GUIA" },
   areas: AREAS,
-  consent: "Aceito receber o guia e mensagens do Thomas no WhatsApp. Sem spam, e paro quando me pedires.",
+  consent: "Aceito receber o guia e mensagens do Thomas por email e WhatsApp. Sem spam, e paro quando me pedires.",
   privacy: { updated: "27 de novembro de 2026", controller: "Thomas Pinheiro, que trabalha sob a marca Thomas Faria | Estratégia & Crescimento", email: "geral@thomasfaria.pt" },
 };
 

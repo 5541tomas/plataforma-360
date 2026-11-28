@@ -17,7 +17,7 @@ export function GuideForm({ org, slug, areas, consent, cta, note, submit, error,
       {error && <p className="nr-err" role="alert">{error}</p>}
       <input type="hidden" name="org" value={org} /><input type="hidden" name="slug" value={slug} /><input type="hidden" name="utm" value={utm ?? "{}"} />
       <div aria-hidden="true" style={{ position: "absolute", left: -9999 }}><label>Site <input name="website" tabIndex={-1} autoComplete="off" /></label></div>
-      <div className="nr-q-meta" style={{ marginBottom: 18 }}><span>Passo {step} de 2</span><span>{step === 1 ? "Para onde envio o guia?" : "Último passo"}</span></div>
+      <div className="nr-q-meta" style={{ marginBottom: 18 }}><span>Passo {step} de 2</span><span className="nr-step-hint">{step === 1 ? "Para onde envio o guia?" : "Último passo"}</span></div>
       <div className="nr-q-bar" style={{ margin: "-6px 0 22px" }}><i style={{ width: step === 1 ? "50%" : "100%" }} /></div>
       <div className="nr-fields" hidden={step !== 1}>
         <label className="nr-field">O teu nome<input name="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" placeholder="Como te chamas?" /></label>
