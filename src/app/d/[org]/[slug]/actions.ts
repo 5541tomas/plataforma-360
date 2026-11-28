@@ -18,6 +18,8 @@ export async function submitMagnet(formData: FormData) {
     const r = scoreQuiz(mag.config, answers);
     scores = r.scores; total = r.total; weakest = r.weakest.name;
   }
+  const email = String(formData.get("email") ?? "");
+  if (email) { const { data: dup } = await supabase.rpc("public_magnet_recent", { p_org: org, p_slug: slug, p_email: email }); if (dup) redirect(mag.kind === "quiz" ? `/r/${dup}` : mag.kind === "guide" ? `/g/${dup}` : `/e/${dup}`); }
   const h = await headers();
   const base = process.env.NEXT_PUBLIC_SITE_URL || `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
   const { data: rid, error } = await supabase.rpc("public_magnet_submit", {

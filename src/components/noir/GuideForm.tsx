@@ -13,7 +13,7 @@ export function GuideForm({ org, slug, areas, consent, cta, note, submit, error,
   const next = () => { if (!step1) return; setStep(2); setTimeout(() => phoneRef.current?.focus(), 50); };
   return (
     <form id="guia" className="nr-card" onKeyDown={(e) => { if (e.key === "Enter" && step === 1 && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); next(); } }}
-      action={async (fd) => { if (step === 1) return next(); if (!step1 || !phoneOk) return; setSending(true); await submit(fd); setSending(false); }}>
+      action={async (fd) => { if (step === 1) return next(); if (sending || !step1 || !phoneOk) return; setSending(true); await submit(fd); setSending(false); }}>
       {error && <p className="nr-err" role="alert">{error}</p>}
       <input type="hidden" name="org" value={org} /><input type="hidden" name="slug" value={slug} /><input type="hidden" name="utm" value={utm ?? "{}"} />
       <div aria-hidden="true" style={{ position: "absolute", left: -9999 }}><label>Site <input name="website" tabIndex={-1} autoComplete="off" /></label></div>
