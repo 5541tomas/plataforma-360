@@ -7,7 +7,10 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/calendar.events",
 ];
-export const googleConfigured = () => !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+const clientId = () => (process.env.GOOGLE_CLIENT_ID ?? "").trim().replace(/^["']|["']$/g, "");
+const clientSecret = () => (process.env.GOOGLE_CLIENT_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
+export const googleClientId = clientId;
+export const googleConfigured = () => !!(clientId() && clientSecret());
 export const redirectUri = (origin: string) => `${origin}/api/google/callback`;
 
 export async function exchangeCode(code: string, origin: string) {
@@ -15,11 +18,17 @@ export async function exchangeCode(code: string, origin: string) {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      code, client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      code, client_id: clientId(), client_secret: clientSecret(),
       redirect_uri: redirectUri(origin), grant_type: "authorization_code",
     }),
   });
-  if (!res.ok) throw new Error(`Google recusou a ligação (${res.status})`);
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string; error_description?: string };
+    const why = j.error === "invalid_client" ? "o ID ou o segredo do cliente não estão corretos no Netlify (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)"
+      : j.error === "redirect_uri_mismatch" ? "o URI de redirecionamento na Google Cloud não é exatamente o da plataforma"
+      : j.error === "invalid_grant" ? "a autorização expirou — tenta ligar de novo" : (j.error_description || j.error || "erro desconhecido");
+    throw new Error(`Google recusou a ligação (${res.status}): ${why}.`);
+  }
   return res.json() as Promise<{ access_token: string; refresh_token?: string; expires_in: number; id_token?: string }>;
 }
 
@@ -27,7 +36,7 @@ export async function refresh(refreshToken: string) {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ refresh_token: refreshToken, client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, grant_type: "refresh_token" }),
+    body: new URLSearchParams({ refresh_token: refreshToken, client_id: clientId(), client_secret: clientSecret(), grant_type: "refresh_token" }),
   });
   if (!res.ok) throw new Error("A ligação ao Google expirou. Volta a ligar a conta nas Definições.");
   return res.json() as Promise<{ access_token: string; expires_in: number }>;
