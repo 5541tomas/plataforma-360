@@ -3,7 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 // Domínios próprios de lead magnets (ex.: 7erros.thomasfaria.pt): a raiz mostra a página do lead magnet
 const APP_HOST = /(^localhost$|^127\.|\.netlify\.app$|^app\.)/;
-const ON_DOMAIN = ["/d/", "/g/", "/r/", "/e/", "/b/", "/m/", "/u/", "/api/t/", "/api/ics/", "/manifest.webmanifest", "/brand/", "/icon", "/apple-icon"];
+const ON_DOMAIN = ["/d/", "/g/", "/r/", "/e/", "/b/", "/m/", "/u/", "/p/", "/api/t/", "/api/ics/", "/api/cron/", "/api/stripe/", "/api/pay/", "/manifest.webmanifest", "/brand/", "/icon", "/apple-icon"];
 const cache = new Map<string, { route: string | null; at: number }>();
 
 async function routeFor(host: string) {
