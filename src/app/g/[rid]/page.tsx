@@ -3,10 +3,11 @@ import { anonClient } from "@/lib/supabase/anon";
 import type { Landing } from "@/lib/landing";
 import { cfgOf, freeSlots, type BookingCfg } from "@/lib/booking";
 import { NoirAbout, NoirShell } from "@/components/noir/Noir";
+import { MetaPixel } from "@/components/noir/Measure";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Está no teu email", robots: { index: false } };
-type G = { kind: string; title: string; config: Landing; first_name: string | null; area: string | null; whatsapp: string | null; keyword: string | null; guide_url: string | null; booking_url: string | null; meeting_url: string | null; quiz_link: string | null; author: string };
+type G = { kind: string; title: string; config: Landing; first_name: string | null; area: string | null; whatsapp: string | null; keyword: string | null; guide_url: string | null; booking_url: string | null; meeting_url: string | null; quiz_link: string | null; author: string; pixel?: string | null };
 const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("pt-PT", { timeZone: "Europe/Lisbon", ...o }).format(new Date(iso));
 
 export default async function GuideThanks({ params }: { params: Promise<{ rid: string }> }) {
@@ -76,6 +77,7 @@ export default async function GuideThanks({ params }: { params: Promise<{ rid: s
         </div>
       </div></section>
       {l.about && <NoirAbout a={l.about} />}
+      <MetaPixel id={g.pixel} event="Lead" />
     </NoirShell>
   );
 }

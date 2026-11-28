@@ -9,6 +9,8 @@ export type Landing = {
   brand: string;            // "THOMAS FARIA"
   edition?: string;         // "GUIA GRATUITO · EDIÇÃO 2027"
   hero: { eyebrow: string; lines: string[]; accent: string; lead: Rich; photo?: string; cta?: string; note?: string };
+  /** Teste A/B do título: metade das visitas vê a versão B */
+  ab?: { on?: boolean; lines?: string[]; accent?: string; lead?: Rich };
   ticker?: string[];
   honest?: { eyebrow: string; pairs: [string, Rich][]; after?: string };
   list?: { title: string; accent: string; intro?: string; items: { t: string; d: string }[] };
@@ -128,5 +130,20 @@ export const WHATSAPP_SEQUENCE: SeqT = {
     { delay: 2, channel: "whatsapp", body: "{{primeiro_nome}}, já fizeste a calculadora do preço mínimo? Se o número te assustou, é normal — é o primeiro passo para deixares de trabalhar a mais." },
     { delay: 3, channel: "whatsapp", body: "Última mensagem desta série 🙂 Se quiseres, marcamos 30 minutos de conversa de diagnóstico, sem custos: vemos onde estás a perder dinheiro em {{area}} e sais com 3 prioridades. Escolhe a hora aqui: {{link_reuniao}}" },
     { delay: 2, channel: "task", body: "Ligar a {{nome}} ({{area}}): recebeu o guia e a sequência, ainda sem conversa marcada" },
+  ],
+};
+
+/** Desafio de 7 dias por email: um pecado por dia, uma ação de 15 minutos, e o convite no fim. */
+export const CHALLENGE_SEQUENCE: SeqT = {
+  key: "desafio7", name: "Desafio 7 dias — email", description: "Para quem pediu o guia com email: um pecado por dia com uma ação de 15 minutos, e no fim o convite para a conversa de diagnóstico.", stop_on_stage_change: true,
+  steps: [
+    { delay: 1, channel: "email", subject: "Dia 1 de 7: os clientes não caem do céu", body: "Olá {{primeiro_nome}},\n\nBem-vindo ao desafio de 7 dias. Todos os dias, um pecado e uma ação de 15 minutos. Sem teoria.\n\nPecado 1: rezar para que os clientes apareçam.\n\nOs meses vazios começam quando estás cheio de trabalho — porque deixas de prospetar. A solução não é mais tempo, é um ritual fixo.\n\nAção de hoje: escreve num papel 10 pessoas que já te pagaram ou te recomendaram. Amanhã vais precisar desta lista.\n\nResponde a este email com «feito» quando terminares — leio todas as respostas.\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Dia 2 de 7: a frase de 10 segundos", body: "{{primeiro_nome}},\n\nPecado 2: ser «o que faz de tudo».\n\nQuem fala para toda a gente compete pelo preço. Quem fala para alguém em concreto compete pelo valor.\n\nAção de hoje: completa esta frase — «Ajudo [quem] a [resultado] sem [dor].» Exemplo: «Ajudo clínicas dentárias a encher a agenda sem depender de descontos.»\n\nDepois envia-a a 3 pessoas da lista de ontem e pergunta: «Conheces alguém assim?»\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Dia 3 de 7: a conta que quase ninguém faz", body: "{{primeiro_nome}},\n\nPecado 3: copiar o preço do vizinho.\n\nOs outros não pagam as tuas contas. Hoje fazes a conta do teu preço mínimo:\n\n(custos fixos do mês + salário que queres + impostos) ÷ horas que consegues mesmo faturar = o teu preço mínimo por hora.\n\nA calculadora está no guia: {{link_guia}}\n\nSe o número te assustar, ótimo. É o primeiro passo para deixares de trabalhar a mais.\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Dia 4 de 7: «quanto custa?»", body: "{{primeiro_nome}},\n\nPecado 4: responder «são 350€» ao «quanto custa?».\n\nÉ o pecado que mais vendas mata. O preço sem contexto é só um número — e números comparam-se.\n\nAção de hoje: guarda este script e usa-o na próxima vez:\n\n«Depende do que precisas. Posso fazer-te 3 perguntas rápidas para te dar um valor certo?»\n\nAs 3 perguntas: o que queres conseguir, o que já tentaste, e para quando precisas.\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Dia 5 de 7: vender sem improviso", body: "{{primeiro_nome}},\n\nPecado 5: vender de improviso.\n\nFalamos demais, apresentamos cedo demais e não pedimos a decisão. O resultado é o famoso «vou pensar».\n\nAção de hoje: antes da próxima conversa com um cliente, escreve 3 linhas — o que ele quer, o que o impede, e a pergunta com que vais pedir a decisão («Faz sentido avançarmos?»).\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Dia 6 de 7: o desconto que te sai caro", body: "{{primeiro_nome}},\n\nPecado 6: dar desconto porque pediram.\n\nBaixar à primeira ensina o cliente que o teu preço era mentira. Em vez de baixar o preço, ajusta o âmbito:\n\n«Consigo chegar a esse valor se tirarmos X. Preferes assim, ou manter tudo como está?»\n\nAção de hoje: escolhe o que podes tirar de cada um dos teus serviços sem estragar o resultado.\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Dia 7 de 7: o dinheiro que não é teu", body: "{{primeiro_nome}},\n\nÚltimo pecado: gastar o dinheiro do Estado.\n\nUma fatura de 1 000 € não são 1 000 € teus. O sistema das 3 contas acaba com os sustos: uma para impostos, uma para o teu salário, uma para o negócio.\n\nAção de hoje: abre uma segunda conta (ou um mealheiro na tua app) e transfere já a percentagem dos impostos da última fatura.\n\nAmanhã envio-te uma última coisa.\n\n{{meu_nome}}" },
+    { delay: 1, channel: "email", subject: "Fizeste os 7 dias. E agora?", body: "{{primeiro_nome}},\n\nSe fizeste as 7 ações, já estás à frente da maioria dos freelancers que conheço.\n\nSe quiseres ir mais rápido, marcamos 30 minutos de conversa de diagnóstico, sem custos. Vemos qual destes pecados te está a custar mais e sais com 3 prioridades claras para os próximos 90 dias.\n\nEscolhe a hora aqui: {{link_reuniao}}\n\nE se preferires só responder a este email a contar como correu, também leio.\n\nUm abraço,\n{{meu_nome}}" },
   ],
 };

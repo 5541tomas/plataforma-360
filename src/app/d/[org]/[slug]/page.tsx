@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { anonClient } from "@/lib/supabase/anon";
 import { QuizRunner } from "@/components/QuizRunner";
@@ -8,6 +8,7 @@ import { utmFrom } from "@/lib/utm";
 import type { Landing } from "@/lib/landing";
 import { NoirAbout, NoirBook, NoirDeliverables, NoirFinal, NoirHero, NoirHonest, NoirList, NoirProof, NoirShell, NoirTicker } from "@/components/noir/Noir";
 import { StickyCta } from "@/components/noir/StickyCta";
+import { AbCookie, MetaPixel } from "@/components/noir/Measure";
 import { GuideForm } from "@/components/noir/GuideForm";
 import { NoirQuiz } from "@/components/noir/NoirQuiz";
 
@@ -28,15 +29,25 @@ export async function generateMetadata({ params }: { params: Promise<{ org: stri
 export default async function MagnetPage({ params, searchParams }: { params: Promise<{ org: string; slug: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { org, slug } = await params;
   const sp = await searchParams;
-  const utm = JSON.stringify(utmFrom(sp) ?? {});
-  const { data } = await anonClient().rpc("public_magnet", { p_org: org, p_slug: slug });
-  const m = data as M | null;
+  const u = utmFrom(sp);
+  // Teste A/B: a pessoa vê sempre a mesma versão (cookie); sem cookie, sorteio 50/50
+  const abKey = `nr_ab_${slug.replace(/[^a-z0-9-]/gi, "")}`;
+  const jar = await cookies();
+  const saved = jar.get(abKey)?.value;
+  const peek = await anonClient().rpc("public_magnet_peek", { p_org: org, p_slug: slug });
+  const pc = (peek.data as { kind?: string; config?: Landing & { landing?: Landing } } | null);
+  const ab = (pc?.kind === "guide" ? pc?.config : pc?.config?.landing)?.ab;
+  const variant = ab?.on && ab.lines?.length ? (saved === "A" || saved === "B" ? saved : Math.random() < 0.5 ? "A" : "B") : "A";
+  const utm = JSON.stringify({ ...(u ?? {}), ...(variant === "B" ? { variant: "B" } : ab?.on ? { variant: "A" } : {}) });
+  const { data } = await anonClient().rpc("public_magnet", { p_org: org, p_slug: slug, p_channel: u?.source ?? null, p_variant: variant });
+  const m = data as (M & { pixel?: string | null }) | null;
   if (!m) notFound();
   let initial: number[] | undefined;
   try { initial = sp.passo === "contacto" && sp.r ? (JSON.parse(sp.r) as number[]) : undefined; } catch { initial = undefined; }
 
   // Estilo da marca (preto e dourado)
-  const land: Landing | undefined = m.kind === "guide" ? (m.config as unknown as Landing) : m.config.landing;
+  const land0: Landing | undefined = m.kind === "guide" ? (m.config as unknown as Landing) : m.config.landing;
+  const land: Landing | undefined = land0 && variant === "B" && land0.ab ? { ...land0, hero: { ...land0.hero, lines: land0.ab.lines ?? land0.hero.lines, accent: land0.ab.accent ?? land0.hero.accent, lead: land0.ab.lead ?? land0.hero.lead } } : land0;
   if (land?.theme === "noir") {
     const areas = land.areas ?? [];
     const consent = land.consent ?? "Aceito receber mensagens. Sem spam, e paro quando me pedires.";
@@ -57,6 +68,8 @@ export default async function MagnetPage({ params, searchParams }: { params: Pro
         {land.about && <NoirAbout a={land.about} />}
         {land.final && <NoirFinal f={land.final} href={anchor} />}
         <StickyCta target={anchor} label={land.final?.cta ?? land.hero.cta ?? "QUERO"} />
+        {land.ab?.on && <AbCookie name={abKey} value={variant} />}
+        <MetaPixel id={m.pixel} />
       </NoirShell>
     );
   }

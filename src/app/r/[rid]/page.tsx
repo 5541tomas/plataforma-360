@@ -5,6 +5,7 @@ import { Ring } from "@/components/Ring";
 import { advice, levelOf, type QuizConfig } from "@/lib/magnets";
 import { meetingHref, type MeetingInfo } from "@/lib/meeting";
 import { NoirResult } from "@/components/noir/NoirResult";
+import { MetaPixel } from "@/components/noir/Measure";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "O teu resultado", robots: { index: false } };
@@ -18,7 +19,7 @@ export default async function ResultPage({ params }: { params: Promise<{ rid: st
   const { data } = await anonClient().rpc("public_magnet_result", { p_rid: rid });
   const r = data as R | null;
   if (!r || r.kind !== "quiz" || !r.scores) notFound();
-  if ((r.config as { landing?: { theme?: string } }).landing?.theme === "noir") return <NoirResult r={r as unknown as Parameters<typeof NoirResult>[0]["r"]} />;
+  if ((r.config as { landing?: { theme?: string } }).landing?.theme === "noir") return <><NoirResult r={r as unknown as Parameters<typeof NoirResult>[0]["r"]} /><MetaPixel id={(r as { pixel?: string | null }).pixel} event="Lead" /></>;
   const total = r.total ?? 0, level = levelOf(r.config, total);
   const areas = [...r.config.areas].sort((a, b) => (r.scores![a.key] ?? 0) - (r.scores![b.key] ?? 0));
   const weak = areas[0];

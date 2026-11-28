@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/context";
 import { EBOOK_CONTENT, EBOOK_OFFER, EBOOK_SUBTITLE, EBOOK_TITLE, MAGNET_SEQUENCE, QUIZ_OFFER, SALES_QUIZ } from "@/lib/magnets";
-import { GUIDE_7_ERROS, GUIDE_OFFER, QUIZ_SINS_OFFER, SINS_QUIZ, WHATSAPP_SEQUENCE } from "@/lib/landing";
+import { CHALLENGE_SEQUENCE, GUIDE_7_ERROS, GUIDE_OFFER, QUIZ_SINS_OFFER, SINS_QUIZ, WHATSAPP_SEQUENCE } from "@/lib/landing";
 import type { SeqT } from "@/lib/automation-templates";
 
 const P = "/crm/lead-magnets";
@@ -53,9 +53,11 @@ export async function saveMagnet(formData: FormData) {
   const patch: Record<string, unknown> = {
     title: String(formData.get("title") ?? "").trim() || "Sem título", subtitle: String(formData.get("subtitle") ?? "").trim() || null,
     active: formData.get("active") === "on", sequence_id: String(formData.get("sequence_id") || "") || null,
+    ...(formData.has("sequence2_id") ? { sequence2_id: String(formData.get("sequence2_id") || "") || null } : {}),
     offer: { meeting_url: /^https?:\/\//.test(url) ? url : "", meeting_label: String(formData.get("meeting_label") ?? "").trim(), email_subject: String(formData.get("email_subject") ?? ""), email_body: String(formData.get("email_body") ?? ""),
       whatsapp: String(formData.get("whatsapp") ?? "").replace(/\D/g, ""), keyword: String(formData.get("keyword") ?? "").trim().toUpperCase().slice(0, 20),
-      guide_url: /^https?:\/\//.test(String(formData.get("guide_url") ?? "").trim()) ? String(formData.get("guide_url")).trim() : "", whatsapp_body: String(formData.get("whatsapp_body") ?? "") },
+      guide_url: /^https?:\/\//.test(String(formData.get("guide_url") ?? "").trim()) ? String(formData.get("guide_url")).trim() : "", whatsapp_body: String(formData.get("whatsapp_body") ?? ""),
+      ...(m.kind === "guide" ? { auto_email: formData.get("auto_email") === "on" } : {}) },
   };
   if (formData.has("custom_domain")) {
     const d = String(formData.get("custom_domain") ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
@@ -64,6 +66,12 @@ export async function saveMagnet(formData: FormData) {
   }
   if (formData.has("config_json")) {
     try { patch.config = JSON.parse(String(formData.get("config_json"))); } catch { redirect(`${P}?erro=${encodeURIComponent("Os textos da página têm um erro de formatação (JSON). Nada foi alterado nesse campo.")}`); }
+  }
+  if (formData.has("ab_lines")) {
+    const cfg = (patch.config ?? m.config) as Record<string, unknown> & { landing?: Record<string, unknown> };
+    const lines = String(formData.get("ab_lines") ?? "").split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 4);
+    const ab = { on: formData.get("ab_on") === "on" && lines.length > 0, lines, accent: String(formData.get("ab_accent") ?? "").trim(), lead: String(formData.get("ab_lead") ?? "").trim() || undefined };
+    patch.config = m.kind === "guide" ? { ...cfg, ab } : cfg.landing ? { ...cfg, landing: { ...cfg.landing, ab } } : cfg;
   }
   if (m.kind === "ebook" && formData.has("content")) patch.config = { ...(m.config as object), content: String(formData.get("content")) };
   const { error } = await supabase.from("lead_magnets").update(patch).eq("id", id);
@@ -86,11 +94,12 @@ export async function seedBrandMagnets(formData: FormData) {
   const supabase = await createClient();
   const which = String(formData.get("which") ?? "both");
   const seqId = await ensureSequence(supabase, ctx.org.id, WHATSAPP_SEQUENCE);
+  const challengeId = which !== "quiz" ? await ensureSequence(supabase, ctx.org.id, CHALLENGE_SEQUENCE) : null;
   const { data: have } = await supabase.from("lead_magnets").select("slug").eq("org_id", ctx.org.id);
   const slugs = new Set((have ?? []).map((m) => m.slug));
   const rows = [];
   const { count: domainTaken } = await supabase.from("lead_magnets").select("id", { count: "exact", head: true }).eq("custom_domain", "7erros.thomasfaria.pt");
-  if (which !== "quiz" && !slugs.has("7-erros")) rows.push({ custom_domain: domainTaken || ctx.email?.endsWith("@example.com") ? null : "7erros.thomasfaria.pt", org_id: ctx.org.id, slug: "7-erros", kind: "guide", title: "Os 7 Erros do Freelancer", subtitle: GUIDE_7_ERROS.hero.lead.replace(/\*/g, ""), config: GUIDE_7_ERROS, offer: GUIDE_OFFER, sequence_id: seqId });
+  if (which !== "quiz" && !slugs.has("7-erros")) rows.push({ custom_domain: domainTaken || ctx.email?.endsWith("@example.com") ? null : "7erros.thomasfaria.pt", org_id: ctx.org.id, slug: "7-erros", kind: "guide", title: "Os 7 Erros do Freelancer", subtitle: GUIDE_7_ERROS.hero.lead.replace(/\*/g, ""), config: GUIDE_7_ERROS, offer: GUIDE_OFFER, sequence_id: seqId, sequence2_id: challengeId });
   if (which !== "guide" && !slugs.has("7-pecados")) rows.push({ org_id: ctx.org.id, slug: "7-pecados", kind: "quiz", title: "Quantos pecados cometes?", subtitle: SINS_QUIZ.intro, config: SINS_QUIZ, offer: QUIZ_SINS_OFFER, sequence_id: seqId });
   if (rows.length) { const { error } = await supabase.from("lead_magnets").insert(rows); if (error) throw new Error(error.message); }
   revalidatePath(P);
@@ -124,5 +133,25 @@ export async function deleteMagnet(formData: FormData) {
   const ctx = await requireModule("crm", "write");
   const supabase = await createClient();
   await supabase.from("lead_magnets").delete().eq("id", String(formData.get("id"))).eq("org_id", ctx.org.id);
+  revalidatePath(P);
+}
+
+/** Liga o desafio de 7 dias por email a um lead magnet já existente */
+export async function enableChallenge(formData: FormData) {
+  const ctx = await requireModule("crm", "write");
+  const supabase = await createClient();
+  const id = await ensureSequence(supabase, ctx.org.id, CHALLENGE_SEQUENCE);
+  await supabase.from("lead_magnets").update({ sequence2_id: id }).eq("id", String(formData.get("id"))).eq("org_id", ctx.org.id);
+  revalidatePath(P);
+}
+
+/** ID do Meta Pixel (opcional). Só carrega depois de a visita aceitar cookies. */
+export async function savePixel(formData: FormData) {
+  const ctx = await requireModule("crm", "write");
+  const supabase = await createClient();
+  const id = String(formData.get("pixel") ?? "").replace(/\D/g, "").slice(0, 20);
+  const { data } = await supabase.from("organizations").select("settings").eq("id", ctx.org.id).single();
+  const settings = (data?.settings as Record<string, unknown>) ?? {};
+  await supabase.from("organizations").update({ settings: { ...settings, pixel: { meta: id || null } } }).eq("id", ctx.org.id);
   revalidatePath(P);
 }

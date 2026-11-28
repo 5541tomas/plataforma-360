@@ -9,11 +9,13 @@ import { qrSvg } from "@/lib/qr";
 import { GuideUpload } from "@/components/GuideUpload";
 import { LinkBuilder } from "@/components/LinkBuilder";
 import type { Offer } from "@/lib/magnets";
-import { deleteMagnet, saveMagnet, seedBrandMagnets, setMeetingUrl, setPublicSlug } from "./actions";
+import { deleteMagnet, enableChallenge, saveMagnet, savePixel, seedBrandMagnets, setMeetingUrl, setPublicSlug } from "./actions";
+import { channelLabel } from "@/lib/utm";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 
-type Mag = { id: string; slug: string; kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: { content?: string; areas?: { key: string; name: string }[] }; custom_domain: string | null; offer: Offer & { whatsapp?: string; keyword?: string; guide_url?: string; whatsapp_body?: string }; sequence_id: string | null; active: boolean; views: number };
-type Resp = { id: string; magnet_id: string; contact_id: string | null; deal_id: string | null; total: number | null; weakest: string | null; created_at: string };
+type Mag = { id: string; slug: string; kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: { content?: string; areas?: { key: string; name: string }[] }; custom_domain: string | null; offer: Offer & { whatsapp?: string; keyword?: string; guide_url?: string; whatsapp_body?: string }; sequence_id: string | null; sequence2_id: string | null; active: boolean; views: number };
+type Resp = { id: string; magnet_id: string; contact_id: string | null; deal_id: string | null; total: number | null; weakest: string | null; created_at: string; answers: { utm?: { source?: string; variant?: string } } | null };
+type View = { magnet_id: string; channel: string; variant: string; n: number };
 
 export default async function LeadMagnetsPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   const ctx = await requireModule("crm");
@@ -22,12 +24,28 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
   const supabase = await createClient();
   const h = await headers();
   const base = process.env.NEXT_PUBLIC_SITE_URL || `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-  const [{ data: org }, { data: mags }, { data: resps }, { data: seqs }] = await Promise.all([
-    supabase.from("organizations").select("public_slug, name").eq("id", ctx.org.id).single(),
+  const [{ data: org }, { data: mags }, { data: resps }, { data: seqs }, { data: viewRows }] = await Promise.all([
+    supabase.from("organizations").select("public_slug, name, settings").eq("id", ctx.org.id).single(),
     supabase.from("lead_magnets").select("*").eq("org_id", ctx.org.id).order("created_at"),
-    supabase.from("magnet_responses").select("id, magnet_id, contact_id, deal_id, total, weakest, created_at").eq("org_id", ctx.org.id).order("created_at", { ascending: false }).limit(1000),
+    supabase.from("magnet_responses").select("id, magnet_id, contact_id, deal_id, total, weakest, created_at, answers").eq("org_id", ctx.org.id).order("created_at", { ascending: false }).limit(1000),
     supabase.from("sequences").select("id, name").eq("org_id", ctx.org.id).order("created_at"),
+    supabase.from("magnet_views").select("magnet_id, channel, variant, n").eq("org_id", ctx.org.id).gte("day", new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10)),
   ]);
+  const views = (viewRows ?? []) as View[];
+  const pixel = ((org?.settings ?? {}) as { pixel?: { meta?: string | null } }).pixel?.meta ?? "";
+  /** Visitas e leads por canal e por versão (últimos 90 dias de visitas) */
+  const breakdown = (m: Mag, rs: Resp[]) => {
+    const ch = new Map<string, { v: number; l: number }>(), ab = new Map<string, { v: number; l: number }>();
+    for (const v of views.filter((x) => x.magnet_id === m.id)) {
+      const c = ch.get(v.channel) ?? { v: 0, l: 0 }; c.v += v.n; ch.set(v.channel, c);
+      const a = ab.get(v.variant) ?? { v: 0, l: 0 }; a.v += v.n; ab.set(v.variant, a);
+    }
+    for (const r of rs) {
+      const k = r.answers?.utm?.source || "direto"; const c = ch.get(k) ?? { v: 0, l: 0 }; c.l++; ch.set(k, c);
+      const vr = r.answers?.utm?.variant; if (vr) { const a = ab.get(vr) ?? { v: 0, l: 0 }; a.l++; ab.set(vr, a); }
+    }
+    return { ch: [...ch.entries()].sort((a, b) => b[1].v + b[1].l - (a[1].v + a[1].l)), ab: [...ab.entries()].sort() };
+  };
   const responses = (resps ?? []) as Resp[];
   const contactIds = [...new Set(responses.map((r) => r.contact_id).filter(Boolean))] as string[];
   const [{ data: deals }, { data: stages }, { data: contacts }] = await Promise.all([
@@ -93,6 +111,11 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
             <div className="flex gap-2"><input name="meeting_url" type="url" defaultValue={meetingUrl} placeholder="https://calendar.app.google/…" className="input" /><button className="btn-ghost">Guardar</button></div>
             <span className="text-xs text-muted">{meetingUrl ? "Usado nos botões e emails." : "Deixa vazio para usares a tua Agenda de marcações (CRM → Agenda). Sem agenda ativa, o botão abre o teu WhatsApp ou email."}</span>
           </form>
+          <form action={savePixel} className="flex flex-col gap-2">
+            <span className="label">Meta Pixel (opcional, para anúncios)</span>
+            <div className="flex gap-2"><input name="pixel" inputMode="numeric" defaultValue={pixel} placeholder="ID do Pixel, ex.: 1234567890" className="input" /><button className="btn-ghost">Guardar</button></div>
+            <span className="text-xs text-muted">{pixel ? "Ativo: regista visitas e leads (evento Lead) só de quem aceita cookies." : "Sem ID, as páginas não carregam nada da Meta. Com ID, aparece um aviso de cookies e só mede quem aceitar."}</span>
+          </form>
         </section>
       )}
 
@@ -121,6 +144,17 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
                 <div key={l} className="rounded-2xl bg-[#F7F7F9] px-3 py-2.5"><div className="text-xs text-muted">{l}</div><div className="text-[20px] font-semibold tabular-nums">{v}</div>{p && <div className="text-[11px] text-muted">conversão {p}</div>}</div>
               ))}
             </div>
+            {(() => { const b = breakdown(m, s.rs); const abOn = !!((m.kind === "guide" ? (m.config as { ab?: { on?: boolean } }).ab : (m.config as { landing?: { ab?: { on?: boolean } } }).landing?.ab)?.on); return (b.ch.length > 0 || abOn) && (
+              <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+                {b.ch.length > 0 && <div className="rounded-2xl border border-line p-3"><div className="label mb-1.5">Por canal</div>
+                  <table className="w-full text-sm"><thead><tr className="text-left text-xs text-muted"><th className="font-medium">Canal</th><th className="text-right font-medium">Visitas</th><th className="text-right font-medium">Leads</th><th className="text-right font-medium">Conversão</th></tr></thead>
+                    <tbody>{b.ch.map(([k, x]) => <tr key={k} className="border-t border-[#F0F0F2]"><td className="py-1.5">{channelLabel(k)}</td><td className="text-right tabular-nums">{x.v}</td><td className="text-right tabular-nums">{x.l}</td><td className="text-right tabular-nums">{pct(x.l, x.v)}</td></tr>)}</tbody></table></div>}
+                {abOn && <div className="rounded-2xl border border-line p-3"><div className="label mb-1.5">Teste A/B do título</div>
+                  {b.ab.length === 0 ? <p className="text-sm text-muted">A recolher dados…</p> : <table className="w-full text-sm"><tbody>{b.ab.map(([k, x]) => { const best = b.ab.length === 2 && x.v >= 30 && b.ab.every(([, y]) => (x.l / Math.max(1, x.v)) >= (y.l / Math.max(1, y.v))); return <tr key={k} className="border-t border-[#F0F0F2] first:border-0"><td className="py-1.5 font-medium">Versão {k}{best && <span className="chip ml-2 bg-good-soft text-[#1E6B30]">a ganhar</span>}</td><td className="text-right tabular-nums">{x.v} visitas</td><td className="text-right tabular-nums">{x.l} leads</td><td className="text-right font-semibold tabular-nums">{pct(x.l, x.v)}</td></tr>; })}</tbody></table>}
+                  <p className="mt-1.5 text-xs text-muted">Decide só depois de cada versão ter pelo menos 100 visitas.</p></div>}
+              </div>
+            ); })()}
+            {write && m.kind === "guide" && !m.sequence2_id && <form action={enableChallenge} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-accent-soft px-4 py-3"><input type="hidden" name="id" value={m.id} /><span className="text-sm text-accent-ink"><strong className="font-semibold">Desafio de 7 dias por email:</strong> um pecado por dia, uma ação de 15 minutos e o convite para a reunião no fim. Os emails passam pela tua fila.</span><button className="btn">Ativar</button></form>}
             {slug && <LinkBuilder url={url} />}
             {write && m.kind === "guide" && <GuideUpload magnetId={m.id} orgId={ctx.org.id} slug={m.slug} current={m.offer.guide_url || undefined} />}
             {m.kind === "quiz" && s.leads > 0 && (
@@ -147,9 +181,10 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
                   <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
                     <label className="flex flex-col gap-1.5"><span className="label">Texto do botão da reunião</span><input name="meeting_label" defaultValue={m.offer.meeting_label ?? ""} className="input" /></label>
                     <label className="flex flex-col gap-1.5"><span className="label">Sequência de nutrição</span><select name="sequence_id" defaultValue={m.sequence_id ?? ""} className="input"><option value="">Nenhuma</option>{(seqs ?? []).map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}</select></label>
+                    <label className="flex flex-col gap-1.5"><span className="label">2.ª sequência (email)</span><select name="sequence2_id" defaultValue={m.sequence2_id ?? ""} className="input"><option value="">Nenhuma</option>{(seqs ?? []).map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}</select></label>
                   </div>
                   <label className="flex flex-col gap-1.5"><span className="label">Assunto do email com o resultado</span><input name="email_subject" defaultValue={m.offer.email_subject ?? ""} className="input" /></label>
-                  <label className="flex flex-col gap-1.5"><span className="label">Email com o resultado (fica na fila para aprovares)</span><textarea name="email_body" rows={10} defaultValue={m.offer.email_body ?? ""} className="input py-2.5 text-sm leading-relaxed" /></label>
+                  <label className="flex flex-col gap-1.5"><span className="label">{m.kind === "guide" ? "Email com o guia" : "Email com o resultado (fica na fila para aprovares)"}</span><textarea name="email_body" rows={10} defaultValue={m.offer.email_body ?? ""} className="input py-2.5 text-sm leading-relaxed" /></label>
                   <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
                     <label className="flex flex-col gap-1.5"><span className="label">O teu WhatsApp (recebe os pedidos)</span><input name="whatsapp" defaultValue={m.offer.whatsapp ?? ""} placeholder="351912345678" className="input" /></label>
                     <label className="flex flex-col gap-1.5"><span className="label">Palavra-chave na mensagem</span><input name="keyword" defaultValue={m.offer.keyword ?? ""} placeholder="GUIA" className="input" /></label>
@@ -163,6 +198,17 @@ export default async function LeadMagnetsPage({ searchParams }: { searchParams: 
                       <textarea name="config_json" rows={18} defaultValue={JSON.stringify(m.config, null, 2)} className="input mt-2 py-2.5 font-mono text-xs leading-relaxed" /></details>
                   )}
                   {m.kind === "ebook" && <label className="flex flex-col gap-1.5"><span className="label">Conteúdo do ebook (## título, - lista, &gt; destaque, **negrito**)</span><textarea name="content" rows={16} defaultValue={m.config.content ?? ""} className="input py-2.5 font-mono text-xs leading-relaxed" /></label>}
+                  {m.kind === "guide" && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="auto_email" defaultChecked={(m.offer as { auto_email?: boolean }).auto_email !== false} className="h-4 w-4" /> Enviar o email com o guia logo após o pedido (sem passar pela fila)</label>}
+                  {(m.kind === "guide" || "landing" in (m.config as object)) && (() => { const ab = (m.kind === "guide" ? (m.config as { ab?: { on?: boolean; lines?: string[]; accent?: string; lead?: string } }).ab : (m.config as { landing?: { ab?: { on?: boolean; lines?: string[]; accent?: string; lead?: string } } }).landing?.ab) ?? {}; return (
+                    <details className="rounded-xl border border-line p-3" open={!!ab.on}><summary className="cursor-pointer text-sm font-medium">Teste A/B do título</summary>
+                      <p className="mt-2 text-xs text-muted">Metade das visitas vê esta versão B. Cada pessoa vê sempre a mesma. Os resultados aparecem acima, no cartão.</p>
+                      <div className="mt-2 grid gap-3 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
+                        <label className="flex flex-col gap-1.5"><span className="label">Linhas do título B (uma por linha)</span><textarea name="ab_lines" rows={2} defaultValue={(ab.lines ?? []).join("\n")} placeholder={"FATURA MAIS\nSEM TRABALHAR"} className="input py-2.5" /></label>
+                        <label className="flex flex-col gap-1.5"><span className="label">Final em dourado</span><input name="ab_accent" defaultValue={ab.accent ?? ""} placeholder="mais horas." className="input" /></label>
+                      </div>
+                      <label className="mt-2 flex flex-col gap-1.5"><span className="label">Texto de apoio B (opcional)</span><textarea name="ab_lead" rows={2} defaultValue={ab.lead ?? ""} className="input py-2.5" /></label>
+                      <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" name="ab_on" defaultChecked={!!ab.on} className="h-4 w-4" /> Teste ativo</label>
+                    </details>); })()}
                   <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={m.active} className="h-4 w-4" /> Publicado</label>
                   <button className="btn self-start">Guardar</button>
                 </form>

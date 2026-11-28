@@ -29,11 +29,11 @@ async function sendAlert(a: Alert, s: SenderInfo, base: string, subject: string,
 }
 
 export async function afterMagnet(rid: string, base: string) {
-  if (!emailConfigured()) return;
   const sb = anonClient();
-  const { data } = await sb.rpc("public_magnet_after", { p_rid: rid });
+  const send = emailConfigured();
+  const { data } = await sb.rpc("public_magnet_after", { p_rid: rid, p_send: send });
   const d = data as { mail: { id: string; to: string; subject: string; body: string } | null; alert: Alert | null; sender: SenderInfo } | null;
-  if (!d) return;
+  if (!d || !send) return;
   if (d.mail) {
     try { await sendEmail({ to: d.mail.to, subject: d.mail.subject, text: d.mail.body, outboxId: d.mail.id, base, orgName: d.sender.org_name, sender: senderOf(d.sender) }); }
     catch (e) { await sb.rpc("public_magnet_mail_failed", { p_rid: rid, p_outbox: d.mail.id, p_error: e instanceof Error ? e.message : "Erro ao enviar" }); }
