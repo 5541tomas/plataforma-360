@@ -51,6 +51,16 @@ export async function refresh(refreshToken: string) {
   return res.json() as Promise<{ access_token: string; expires_in: number }>;
 }
 
+/** Explica em português porque o Google recusou um pedido */
+export async function googleError(r: Response, url: string) {
+  const j = (await r.json().catch(() => ({}))) as { error?: { message?: string; status?: string; errors?: { reason?: string }[]; details?: { reason?: string }[] } };
+  const reason = j.error?.errors?.[0]?.reason ?? j.error?.details?.[0]?.reason ?? j.error?.status ?? "";
+  const api = url.includes("gmail") ? "Gmail API" : url.includes("calendar") ? "Google Calendar API" : "API do Google";
+  if (/accessNotConfigured|SERVICE_DISABLED|disabled/i.test(reason + (j.error?.message ?? ""))) return `A ${api} não está ativada no projeto da Google Cloud. Vai a APIs e serviços → Biblioteca, procura “${api}” e carrega em Ativar. Depois espera 2 minutos e sincroniza de novo.`;
+  if (/insufficient|ACCESS_TOKEN_SCOPE_INSUFFICIENT|PERMISSION_DENIED/i.test(reason + (j.error?.message ?? ""))) return `A ligação não tem permissão para a ${api}. Em Definições, desliga a conta Google e volta a ligar, aceitando todas as permissões.`;
+  return `Erro do Google (${r.status}) ao sincronizar com a ${api}${j.error?.message ? `: ${j.error.message}` : ""}.`;
+}
+
 /** Email da conta a partir do id_token (recebido diretamente da Google por TLS) */
 export function emailFromIdToken(idToken?: string) {
   if (!idToken) return null;
@@ -75,7 +85,7 @@ export async function syncGoogle(supabase: DB, orgId: string, userId: string): P
   }
   const g = async (url: string) => {
     const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!r.ok) throw new Error(`Erro do Google (${r.status}) ao sincronizar.`);
+    if (!r.ok) throw new Error(await googleError(r, url));
     return r.json();
   };
 

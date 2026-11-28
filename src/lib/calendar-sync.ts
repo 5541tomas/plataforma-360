@@ -1,5 +1,5 @@
 import { anonClient } from "@/lib/supabase/anon";
-import { refresh } from "@/lib/google";
+import { googleError, refresh } from "@/lib/google";
 
 type Job = { connected: boolean; refresh_token?: string; horizon?: number; title?: string; location?: string | null; meet_url?: string | null;
   create?: { id: string; start: string; end: string; name: string; email: string; phone: string | null; notes: string | null }[]; delete?: { id: string; event: string }[] };
@@ -25,7 +25,7 @@ export async function runCalendarSync(secret: string): Promise<CalResult> {
   let busy: { start: string; end: string }[] | null = null;
   const fb = await g("https://www.googleapis.com/calendar/v3/freeBusy", { method: "POST", body: JSON.stringify({ timeMin: now.toISOString(), timeMax: until.toISOString(), items: [{ id: "primary" }] }) });
   if (fb.ok) busy = ((await fb.json()) as { calendars: { primary: { busy: { start: string; end: string }[] } } }).calendars.primary.busy ?? [];
-  else errs.push(`Não consegui ler o calendário (${fb.status}).`);
+  else errs.push(await googleError(fb, "calendar"));
 
   // 2) Criar eventos das novas marcações (com Meet e convite para o cliente)
   const created: { id: string; event: string; meet?: string }[] = [];
