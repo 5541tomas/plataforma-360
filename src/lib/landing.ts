@@ -46,7 +46,7 @@ export const GUIDE_7_ERROS: Landing = {
   theme: "noir", brand: "THOMAS FARIA", edition: "GUIA GRATUITO · EDIÇÃO 2027",
   hero: { eyebrow: "PARA FREELANCERS QUE ESTÃO FARTOS", lines: ["PARA DE", "TRABALHAR"], accent: "a mais.", photo: "/brand/thomas-hero.jpg",
     lead: "Talento não paga contas. **Método paga.** Descobre os 7 erros que te mantêm entre meses cheios e meses vazios, num guia de 13 páginas que lês num café.",
-    cta: "MANDA-ME O GUIA", note: "Grátis. Chega ao teu WhatsApp em segundos." },
+    cta: "MANDA-ME O GUIA", note: "Grátis. Chega ao teu email em segundos." },
   ticker: TICKER,
   honest: { eyebrow: "VAMOS SER HONESTOS", pairs: [["O teu talento não é o problema.", "O teu *preço* é."], ["A agenda vazia não é azar.", "É falta de *sistema.*"], ["O cliente não está a “pensar”.", "Está a *fugir.*"]],
     after: "Se alguma destas frases te incomodou, ótimo. É por aí que se começa a faturar mais sem trabalhar mais horas." },

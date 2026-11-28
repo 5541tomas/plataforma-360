@@ -144,6 +144,44 @@ const CSS = `
   .nr-sin{padding:24px 4px}
   .nr-sin .num{min-width:0}
 }
+.nr [hidden]{display:none !important}
+/* Capa 3D do guia */
+.nr-hero-grid{display:flex;flex-wrap:wrap;align-items:flex-end;gap:40px}
+.nr-hero-grid>.nr-card{flex:1 1 420px}
+.nr-book-wrap{flex:0 0 auto;perspective:1400px;padding:10px 20px 0}
+.nr-book{position:relative;width:200px;height:278px;transform-style:preserve-3d;transform:rotateY(-28deg) rotateX(6deg);transition:transform .6s cubic-bezier(.2,.7,.2,1);animation:nrfloat 6s ease-in-out infinite}
+.nr-book-wrap:hover .nr-book{transform:rotateY(-8deg) rotateX(2deg)}
+.nr-book .fr{position:absolute;inset:0;background:linear-gradient(160deg,#151515 0%,#0A0A0A 60%,#1A1407 100%);border:1px solid #3A3022;padding:22px 18px;display:flex;flex-direction:column;justify-content:space-between;transform:translateZ(14px);box-shadow:inset 4px 0 0 rgba(255,255,255,.04)}
+.nr-book .fr:before{content:"";position:absolute;inset:10px;border:1px solid rgba(201,165,92,.35);pointer-events:none}
+.nr-book .sp{position:absolute;top:0;left:0;width:28px;height:100%;background:linear-gradient(90deg,#8A6F38,#C9A55C 55%,#6E5629);transform:rotateY(-90deg) translateZ(0) translateX(-14px);transform-origin:left}
+.nr-book .pg{position:absolute;top:4px;right:0;width:26px;height:calc(100% - 8px);background:repeating-linear-gradient(90deg,#EDE8DD 0 1px,#D8D2C4 1px 2px);transform:rotateY(90deg) translateZ(186px) translateX(13px)}
+.nr-book .sh{position:absolute;left:10%;right:-10%;bottom:-36px;height:30px;background:radial-gradient(ellipse at center,rgba(0,0,0,.7),rgba(0,0,0,0) 70%);transform:translateZ(-30px) rotateX(90deg)}
+.nr-book .k{font-size:9px;letter-spacing:3px;color:var(--gold);font-weight:700}
+.nr-book .t{font-weight:900;font-size:27px;line-height:.95;color:#fff;letter-spacing:-.02em}
+.nr-book .t em{display:block;font-family:var(--nr-serif),Georgia,serif;font-style:italic;color:var(--gold);font-weight:800}
+.nr-book .a{font-size:9px;letter-spacing:2.5px;color:#9A9A9A;font-weight:600}
+@keyframes nrfloat{0%,100%{translate:0 0}50%{translate:0 -8px}}
+/* Prova social */
+.nr-proof{margin-top:34px;max-width:980px;display:flex;flex-direction:column;gap:18px}
+.nr-proof-count{font-size:12px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;font-weight:600}
+.nr-proof-count b{color:var(--gold);font-size:15px}
+.nr-proof-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.nr-t{border-left:2px solid var(--gold);padding:4px 0 4px 18px}
+.nr-t p{margin:0 0 10px;font-family:var(--nr-serif),Georgia,serif;font-style:italic;font-size:1.02rem;line-height:1.45;color:#E8E8E8}
+.nr-t span{font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;font-weight:600}
+/* Barra fixa no telemóvel */
+.nr-sticky{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(8,8,8,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);transform:translateY(110%);transition:transform .3s ease;display:none}
+.nr-sticky.on{transform:none}
+.nr-sticky .nr-cta{min-height:54px}
+@media (max-width:760px){
+  .nr-sticky{display:block}
+  .nr-hero-grid{flex-direction:column-reverse;align-items:stretch;gap:0}
+  .nr-book-wrap{align-self:center;padding:34px 0 0}
+  .nr-book{width:150px;height:208px}
+  .nr-book .pg{transform:rotateY(90deg) translateZ(136px) translateX(13px)}
+  .nr-book .t{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){.nr-book{animation:none}.nr-sticky{transition:none}}
 @media (prefers-reduced-motion:reduce){.nr-ticker-row{animation:none}.nr-cta,.nr-pages img,.nr-b-opt{transition:none}}
 `;
 
@@ -263,5 +301,32 @@ function Privacy({ p }: { p: NonNullable<Landing["privacy"]> }) {
       <h3>Cookies</h3>
       <p>Esta página não usa cookies de publicidade nem ferramentas de rastreamento de terceiros.</p>
     </div></div>
+  );
+}
+
+/** Capa do guia em 3D (só CSS) */
+export function NoirBook({ title, author, kicker = "GUIA GRATUITO" }: { title: string; author: string; kicker?: string }) {
+  const words = title.replace(/^os\s+/i, "").split(" ");
+  const head = words.slice(0, Math.ceil(words.length / 2)).join(" "), tail = words.slice(Math.ceil(words.length / 2)).join(" ");
+  return (
+    <div className="nr-book-wrap" aria-hidden="true">
+      <div className="nr-book"><div className="sp" /><div className="pg" /><div className="sh" />
+        <div className="fr"><span className="k">{kicker}</span><span className="t">{head}<em>{tail}</em></span><span className="a">{author.toUpperCase()}</span></div>
+      </div>
+    </div>
+  );
+}
+
+/** Testemunhos ("texto — autor", um por parágrafo) e contador real de pedidos */
+export function NoirProof({ testimonials, count, label = "freelancers já pediram o guia", min = 25 }: { testimonials?: string | null; count?: number; label?: string; min?: number }) {
+  const items = (testimonials ?? "").split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).slice(0, 3).map((t) => {
+    const i = t.lastIndexOf(" — "); return i > 0 ? { q: t.slice(0, i).replace(/^["“]|["”]$/g, ""), a: t.slice(i + 3) } : { q: t, a: "" };
+  });
+  if (!items.length && (count ?? 0) < min) return null;
+  return (
+    <div className="nr-proof">
+      {(count ?? 0) >= min && <p className="nr-proof-count"><b>{count}</b> {label}</p>}
+      {items.length > 0 && <div className="nr-proof-list">{items.map((t, i) => <figure key={i} className="nr-t" style={{ margin: 0 }}><p>“{t.q}”</p>{t.a && <span>{t.a}</span>}</figure>)}</div>}
+    </div>
   );
 }

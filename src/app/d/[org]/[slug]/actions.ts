@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { anonClient } from "@/lib/supabase/anon";
 import { scoreQuiz, type QuizConfig } from "@/lib/magnets";
+import { afterMagnet } from "@/lib/after-submit";
 
 export async function submitMagnet(formData: FormData) {
   const org = String(formData.get("org")), slug = String(formData.get("slug"));
@@ -26,5 +27,6 @@ export async function submitMagnet(formData: FormData) {
   });
   if (error) redirect(`/d/${org}/${slug}?erro=${encodeURIComponent(error.message)}${mag.kind === "quiz" ? "&passo=contacto&r=" + encodeURIComponent(String(formData.get("answers"))) : ""}`);
   if (!rid) redirect(`/d/${org}/${slug}`);
+  await afterMagnet(String(rid), base).catch(() => {});
   redirect(mag.kind === "quiz" ? `/r/${rid}` : mag.kind === "guide" ? `/g/${rid}` : `/e/${rid}`);
 }

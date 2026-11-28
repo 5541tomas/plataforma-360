@@ -5,7 +5,7 @@ import { stripeConfigured, internalSecret } from "@/lib/stripe";
 import { headers } from "next/headers";
 import { InternalKeyButton, TestEmailButton } from "@/components/IntegrationButtons";
 import { CopyLink } from "@/components/CopyLink";
-import { saveDigest, savePayments } from "./integration-actions";
+import { saveDigest, saveNotify, savePayments } from "./integration-actions";
 
 const Dot = ({ on, label }: { on: boolean; label: string }) => (
   <span className={`chip ${on ? "bg-good-soft text-[#1E6B30]" : "bg-[#F2F2F5] text-muted"}`}>{on ? "✓ " : ""}{label}</span>
@@ -20,7 +20,7 @@ export async function IntegrationsSection({ ctx }: { ctx: AppContext }) {
     supabase.from("organizations").select("settings, iban").eq("id", ctx.org.id).single(),
     internalSecret() ? supabase.rpc("internal_secret_matches", { p_org: ctx.org.id, p_secret: internalSecret() }).then((r) => !!r.data) : Promise.resolve(false),
   ]);
-  const st = (org?.settings ?? {}) as { payments?: { enabled?: boolean; deposit_pct?: number; mbway?: string | null }; digest?: { enabled?: boolean; email?: string | null } };
+  const st = (org?.settings ?? {}) as { payments?: { enabled?: boolean; deposit_pct?: number; mbway?: string | null }; digest?: { enabled?: boolean; email?: string | null }; notify?: { leads?: boolean } };
   const resend = emailConfigured(), stripe = stripeConfigured(), hook = !!process.env.STRIPE_WEBHOOK_SECRET;
   return (
     <section className="card flex flex-col gap-6">
@@ -67,6 +67,15 @@ export async function IntegrationsSection({ ctx }: { ctx: AppContext }) {
           <button className="btn-ghost">Guardar</button>
         </form>
         <p className="text-xs text-muted">Reuniões do dia, mensagens por aprovar, tarefas, leads quentes, cobranças em atraso e a meta do mês — num email curto.</p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2"><h3 className="text-[15px] font-semibold">Alerta de nova lead</h3><Dot on={st.notify?.leads !== false && resend} label={st.notify?.leads === false ? "Desligado" : resend ? "Ativo" : "Ativo — falta ligar o email"} /></div>
+        <form action={saveNotify} className="flex flex-wrap items-end gap-3">
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="leads" defaultChecked={st.notify?.leads !== false} className="h-4 w-4" /> Avisar-me por email no momento em que alguém pede o guia, faz o teste ou marca reunião</label>
+          <button className="btn-ghost">Guardar</button>
+        </form>
+        <p className="text-xs text-muted">Vai para o email do resumo diário. Responder nos primeiros 5 minutos multiplica as hipóteses de fechar.</p>
       </div>
 
       <div className="flex flex-col gap-2">

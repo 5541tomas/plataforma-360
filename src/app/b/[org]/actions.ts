@@ -2,6 +2,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { anonClient } from "@/lib/supabase/anon";
+import { afterBooking } from "@/lib/after-submit";
 
 export async function book(formData: FormData) {
   const org = String(formData.get("org"));
@@ -15,5 +16,6 @@ export async function book(formData: FormData) {
   });
   if (error) redirect(`/b/${org}?erro=${encodeURIComponent(error.message)}${rid ? `&r=${rid}` : ""}`);
   if (!data) redirect(`/b/${org}`);
+  await afterBooking(String(data), base).catch(() => {});
   redirect(`/m/${data}?nova=1`);
 }

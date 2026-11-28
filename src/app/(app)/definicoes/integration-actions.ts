@@ -25,6 +25,10 @@ export async function saveDigest(formData: FormData) {
   await mergeSettings("digest", { enabled: formData.get("digest_enabled") === "on", email: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? email : null });
 }
 
+export async function saveNotify(formData: FormData) {
+  await mergeSettings("notify", { leads: formData.get("leads") === "on" });
+}
+
 /** Gera a chave interna (mostrada uma única vez) */
 export async function generateInternalKey(): Promise<{ key?: string; error?: string }> {
   const ctx = await getContext();

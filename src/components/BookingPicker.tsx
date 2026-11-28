@@ -5,9 +5,10 @@ import type { Day } from "@/lib/booking";
 const time = (iso: string) => new Intl.DateTimeFormat("pt-PT", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 const long = (iso: string) => new Intl.DateTimeFormat("pt-PT", { timeZone: "Europe/Lisbon", weekday: "long", day: "numeric", month: "long" }).format(new Date(iso));
 
-export function BookingPicker({ days, org, rid, firstName, duration, submit, error }: { days: Day[]; org: string; rid?: string; firstName?: string; duration: number; submit: (fd: FormData) => Promise<void>; error?: string }) {
-  const [day, setDay] = useState(days[0]?.date);
-  const [slot, setSlot] = useState<string | null>(null);
+export function BookingPicker({ days, org, rid, firstName, duration, submit, error, initial }: { days: Day[]; org: string; rid?: string; firstName?: string; duration: number; submit: (fd: FormData) => Promise<void>; error?: string; initial?: string }) {
+  const pre = initial && days.some((x) => x.slots.includes(initial)) ? initial : null;
+  const [day, setDay] = useState(pre ? days.find((x) => x.slots.includes(pre))!.date : days[0]?.date);
+  const [slot, setSlot] = useState<string | null>(pre);
   const [sending, setSending] = useState(false);
   const d = days.find((x) => x.date === day);
   if (!days.length) return <div className="card text-center text-sm text-muted">De momento não há horários livres. Volta a tentar daqui a uns dias.</div>;

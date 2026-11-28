@@ -6,12 +6,13 @@ import type { QuizConfig } from "@/lib/magnets";
 import { submitMagnet } from "./actions";
 import { utmFrom } from "@/lib/utm";
 import type { Landing } from "@/lib/landing";
-import { NoirAbout, NoirDeliverables, NoirFinal, NoirHero, NoirHonest, NoirList, NoirShell, NoirTicker } from "@/components/noir/Noir";
+import { NoirAbout, NoirBook, NoirDeliverables, NoirFinal, NoirHero, NoirHonest, NoirList, NoirProof, NoirShell, NoirTicker } from "@/components/noir/Noir";
+import { StickyCta } from "@/components/noir/StickyCta";
 import { GuideForm } from "@/components/noir/GuideForm";
 import { NoirQuiz } from "@/components/noir/NoirQuiz";
 
 export const dynamic = "force-dynamic";
-type M = { kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: QuizConfig & Partial<Landing> & { content?: string; landing?: Landing }; org: string; author: string };
+type M = { kind: "quiz" | "ebook" | "guide"; title: string; subtitle: string | null; config: QuizConfig & Partial<Landing> & { content?: string; landing?: Landing }; org: string; author: string; proof?: { testimonials: string | null; count: number } };
 
 export async function generateMetadata({ params }: { params: Promise<{ org: string; slug: string }> }) {
   const { org, slug } = await params;
@@ -45,13 +46,17 @@ export default async function MagnetPage({ params, searchParams }: { params: Pro
     const anchor = m.kind === "guide" ? "#guia" : "#teste";
     return (
       <NoirShell l={land}>
-        <NoirHero h={land.hero}>{capture}</NoirHero>
+        <NoirHero h={land.hero}>
+          {m.kind === "guide" ? <div className="nr-hero-grid">{capture}<NoirBook title={m.title} author={land.brand ?? m.author} /></div> : capture}
+          <NoirProof testimonials={m.proof?.testimonials} count={m.proof?.count} label={m.kind === "guide" ? "freelancers já pediram o guia" : "freelancers já fizeram o teste"} />
+        </NoirHero>
         {land.ticker && <NoirTicker items={land.ticker} />}
         {land.honest && <NoirHonest h={land.honest} />}
         {land.list && <div style={{ paddingTop: land.honest ? 0 : 120 }}><NoirList l={land.list} /></div>}
         {land.deliverables && <NoirDeliverables d={land.deliverables} />}
         {land.about && <NoirAbout a={land.about} />}
         {land.final && <NoirFinal f={land.final} href={anchor} />}
+        <StickyCta target={anchor} label={land.final?.cta ?? land.hero.cta ?? "QUERO"} />
       </NoirShell>
     );
   }

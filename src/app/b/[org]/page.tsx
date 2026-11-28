@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Marcar reunião" };
 type Info = { org: string; author: string; booking: BookingCfg; busy: [string, string][] };
 
-export default async function BookingPage({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ r?: string; erro?: string }> }) {
+export default async function BookingPage({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ r?: string; erro?: string; h?: string }> }) {
   const { org } = await params;
   const sp = await searchParams;
   const sb = anonClient();
@@ -31,7 +31,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           <p className="max-w-[480px] text-[15px] leading-relaxed text-ink-2">{cfg.intro}</p>
           <div className="flex flex-wrap justify-center gap-2 text-xs text-ink-2"><span className="chip bg-white">⏱ {cfg.duration} min</span><span className="chip bg-white">📍 {cfg.location}</span><span className="chip bg-white">Gratuita</span></div>
         </div>
-        <BookingPicker days={days} org={org} rid={sp.r} firstName={firstName} duration={cfg.duration} submit={book} error={sp.erro} />
+        <BookingPicker days={days} org={org} rid={sp.r} firstName={firstName} duration={cfg.duration} submit={book} error={sp.erro} initial={sp.h} />
         <p className="text-center text-xs text-muted">{info.org}</p>
       </div>
     </main>
